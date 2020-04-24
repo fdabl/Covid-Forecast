@@ -4,11 +4,16 @@ source('helpers.R')
 
 
 shinyServer(function(input, output, session) {
+  req <- httr::GET("http://worldtimeapi.org/api/ip")
+  time <- httr::content(req)$datetime
+  
   est <- reactiveValues(data = NULL)
   pred <- reactiveValues(data = NULL)
   inter <- reactiveValues(data = NULL)
   nr_inter <- reactiveValues(data = NULL)
   nr_inter_for <- reactiveValues(data = NULL)
+  days_inter <- reactiveValues(data = NULL)
+  days_inter_for <- reactiveValues(data = NULL)
   
   
   output$introduction <- renderText({
@@ -50,7 +55,8 @@ shinyServer(function(input, output, session) {
     suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur? Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse
     quam nihil molestiae consequatur, vel illum qui dolorem eum fugiat quo voluptas nulla pariatur?</p>'
     
-    paste0(text1, '<p style="text-align: center;"><img src="SEIR.png" width=600 height=300></p>', text2)
+    res <- paste0(text1, '<p style="text-align: center;"><img src="SEIR.png" width=600 height=300></p>', text2)
+    paste(res, '<p>', time, '</p>')
   })
   
   observeEvent(input$nr_interventions, {
@@ -61,8 +67,20 @@ shinyServer(function(input, output, session) {
     nr_inter_for$data <- input$nr_interventions_forecast
   })
   
+  observeEvent(input$days_intervention, {
+    # TODO: Input handling
+    days <- strsplit(input$days_intervention, ',')[[1]]
+    days_inter$data <- days
+  })
+  
+  observeEvent(input$days_intervention_forecast, {
+    # TODO: Input handling
+    days <- strsplit(input$days_intervention_forecast, ',')[[1]]
+    days_inter_for$data <- days
+  })
+  
   output$alphas <- renderUI({
-    lapply(seq(nr_inter$data), function(i) {
+    lapply(seq(length(days_inter$data)), function(i) {
       alpha <- paste0('alpha', i)
       sliderInput(
         alpha,
@@ -73,22 +91,43 @@ shinyServer(function(input, output, session) {
     })
   })
   
+  output$intervention <- renderUI({
+    output <- tagList()
+    
+    for (i in seq(nr_inter_for$data)) {
+      day <- paste0('day_for', i)
+      alpha <- paste0('alpha_', i)
+      
+      output[[i]] <- tagList()
+      output[[i]][[1]] <- dateInput(day, paste0('Date of Intervention ', i))
+      output[[i]][[2]] <- sliderInput(
+        alpha,
+        # withMathJax(paste0('Percent R0 Reduction \\( \\alpha', '_', i, '\\)')),
+        withMathJax(paste0('%\\( R_0 \\) Reduction on Intervention ', i)),
+        min = 0, max = 1,
+        value = c(0.1, 0.2)
+      )
+      
+    }
+    output
+  })
+  
   output$alphas_intervention <- renderUI({
     lapply(seq(nr_inter_for$data), function(i) {
       alpha <- paste0('alpha_for', i)
-      numericInput(
+      sliderInput(
         alpha,
-        withMathJax(paste0('Value of \\( \\alpha', '_', i, '\\)')),
+        withMathJax(paste0('Percent R0 Reduction of \\( \\alpha', '_', i, '\\)')),
         min = 0, max = 1,
-        value = 0.50
+        value = c(0.1, 0.2)
       )
     })
   })
   
   
-  observeEvent(input$estimate, {
-    est$data <- randn_py(100)
-  })
+  observeEvent(input$estimate1, { est$data <- randn_py(100) })
+  observeEvent(input$estimate2, { est$data <- randn_py(100) })
+  observeEvent(input$estimate3, { est$data <- randn_py(100) })
   
   observeEvent(input$forecast, {
     pred$data <- randn_py(100)
@@ -98,9 +137,26 @@ shinyServer(function(input, output, session) {
     inter$data <- randn_py(100)
   })
   
-  output$estimationPlot <- renderPlot({
+  output$infectedPlot <- renderPlot({
     if (!is.null(est$data)) hist(est$data)
   })
+  
+  output$hospitalizedPlot <- renderPlot({
+    if (!is.null(est$data)) hist(est$data)
+  })
+  
+  output$ICPlot <- renderPlot({
+    if (!is.null(est$data)) hist(est$data)
+  })
+  
+  output$deadPlot <- renderPlot({
+    if (!is.null(est$data)) hist(est$data)
+  })
+  
+  output$allPlot <- renderPlot({
+    if (!is.null(est$data)) hist(est$data)
+  })
+  
   
   output$predictionPlot <- renderPlot({
     if (!is.null(pred$data)) hist(pred$data)
@@ -113,11 +169,15 @@ shinyServer(function(input, output, session) {
     
     pixelratio <- session$clientData$pixelratio # what is this?
     
-    draw_py(inter$data, width, height)
+    png('www/Intervention-Plot.png', width = width, height = height)
+    plot(inter$data)
+    dev.off()
+    
+    # draw_py(inter$data, width, height)
     
     # Return a list containing the filename
     list(
-      src = 'Figures/Intervention-Plot.png',
+      src = 'www/Intervention-Plot.png',
       contentType = 'image/png',
       width = width,
       height = height,

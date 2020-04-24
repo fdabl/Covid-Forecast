@@ -1,16 +1,13 @@
 library('shiny')
 library('shinythemes')
 library('shinydashboard')
-
-
+  
 
 sidebar <- dashboardSidebar(
   width = 350,
   sidebarMenu(
     menuItem('Introduction', tabName = 'introduction', icon = icon('file-alt')),
-    menuItem('Estimation', tabName = 'estimation', icon = icon('dashboard')),
-    menuItem('Forecasting', tabName = 'forecasting', icon = icon('dashboard')),
-    menuItem('Intervention', tabName = 'intervention', icon = icon('dashboard')),
+    menuItem('Model Exploration', tabName = 'estimation', icon = icon('dashboard')),
     menuItem('About', tabName = 'about', icon = icon('address-card'))
   )
 )
@@ -38,9 +35,30 @@ body <- dashboardBody(
       fluidRow(
         column(
           width = 8,
-          box(
-            title = 'Model Estimation', width = NULL, solidHeader = TRUE, status = 'primary',
-            plotOutput('estimationPlot', height = 500)
+          tabBox(
+            width = NULL,
+            id = 'datafigures',
+            # title = 'Model Forecasts',
+            tabPanel(
+              'Infected',
+              plotOutput('infectedPlot', height = 500)
+            ),
+            tabPanel(
+              'Hospitalized',
+              plotOutput('hospitalizedPlot', height = 500)
+            ),
+            tabPanel(
+              'Intensive Care',
+              plotOutput('ICPlot', height = 500)
+            ),
+            tabPanel(
+              'Dead',
+              plotOutput('deadPlot', height = 500)
+            ),
+            tabPanel(
+              'Show All',
+              plotOutput('allPlot', height = 500)
+            )
           )
         ),
         
@@ -50,15 +68,53 @@ body <- dashboardBody(
             width = NULL,
             id = 'tabset1', title = '',
             tabPanel(
-              'Core',
+              'Core I',
               withMathJax(),
+              
+              # dateInput(
+              #   'startdate',
+              #   'Start of Epidemic',
+              #   value = '2020-02-01'
+              # ),
+              
               selectInput(
                 'calibration',
-                'Calibrate on:',
+                'Calibrate Model on:',
                 choices = list('ICU' = 1, 'Dead' = 2, 'Hospitalized' = 3, 'Cumulative Hospitalized' = 4),
                 selected = 2
               ),
-                
+              
+              numericInput(
+                'delayREC',
+                'Recovery of Non-Hospitalised Patients',
+                value = 12
+              ),
+              
+              sliderInput(
+                'hosfrac',
+                '% Infected People Hospitalized:',
+                value = 0.05, min = 0, max = 0.30, step = 0.01
+              ),
+              
+              sliderInput(
+                'ICUfrac',
+                '% Hospitalized People Needing IC:',
+                value = 0.05, min = 0, max = 0.30, step = 0.01
+              ),
+              
+              # sliderInput(
+              #   'Nseed',
+              #   'Initially Infected :',
+              #   value = 0.05, min = 0, max = 0.30, step = 0.01
+              # ),
+              
+              actionButton('estimate1', 'Estimate')
+            ),
+            
+            tabPanel(
+              'Core II',
+              withMathJax(),
+              
               sliderInput(
                 'R0_range',
                 'Uniform Prior on \\( R_0 \\)',
@@ -66,12 +122,12 @@ body <- dashboardBody(
                 value = c(3.3, 3.7)
               ),
               
-              numericInput(
-                'nr_interventions',
-                'Number of Interventions',
-                min = 0, max = 100,
-                value = 3
-              ),
+              # numericInput(
+              #   'nr_interventions',
+              #   'Number of Interventions',
+              #   min = 0, max = 100,
+              #   value = 3
+              # ),
               
               textInput(
                 'days_intervention',
@@ -87,29 +143,11 @@ body <- dashboardBody(
                 value = 8, min = 2, max = 32
               ),
               
-              actionButton('estimate', 'Estimate')
+              actionButton('estimate2', 'Estimate')
             ),
             
             tabPanel(
-              'Hospital',
-              
-              sliderInput(
-                'hosfrac',
-                '% Infected People Hospitalized:',
-                value = 0.05, min = 0, max = 0.30, step = 0.01
-              ),
-              
-              sliderInput(
-                'ICUfrac',
-                '% Hospitalized People Needing IC:',
-                value = 0.05, min = 0, max = 0.30, step = 0.01
-              ),
-              
-              numericInput(
-                'delayREC',
-                'Recovery of Non-Hospitalised Patients (Days)',
-                value = 12
-              ),
+              'Expert',
               
               textInput(
                 'dfrac',
@@ -125,14 +163,14 @@ body <- dashboardBody(
               
               textInput(
                 'delayHOS',
-                'Uniform Prior on Delay Between Hospitalisation and Recovery (\\( a, b \\))',
-                value = '7, 11'
+                'Gaussian Prior on Delay Between Hospitalisation and Recovery (\\( a, b \\))',
+                value = '9, 2'
               ),
               
               textInput(
                 'delayHOSREC',
-                'Uniform Prior on Hospitalisation Recovery (no IC)',
-                value = '12, 12'
+                'Gaussian Prior on Hospitalisation Recovery (no IC)',
+                value = '12, 0'
               ),
               
               textInput(
@@ -151,57 +189,33 @@ body <- dashboardBody(
                 'delayICUD',
                 'Gaussian Prior on Time for IC Patients to Die',
                 value = '8, 4'
-              )
+              ),
+              
+              actionButton('estimate3', 'Estimate')
+            ),
+            
+            tabPanel(
+              'Plotting',
+              
+              dateRangeInput(
+                'zoomdate',
+                'Zoom in on Dates'
+              ),
+              
+              checkboxInput(
+                'ylog',
+                'Logarithmic Plot',
+                value = FALSE
+              ),
+              
+              actionButton('updatePlot', 'Update Plot')
             )
           )
         )
-      )
-    ),
-    
-    tabItem(
-      tabName = 'forecasting',
-      fluidRow(
-        column(
-          width = 8,
-          box(
-            title = 'Model Forecast', width = NULL, solidHeader = TRUE, status = 'primary',
-            plotOutput('predictionPlot', height = 500)
-          )
-        ),
         
-        column(
-          width = 4,
-          box(
-            status = 'warning', width = NULL,
-            title = 'Forecast Settings',
-            
-            selectInput(
-              'forecast',
-              'Forecast:',
-              choices = list('ICU' = 1, 'Dead' = 2, 'Hospitalized' = 3, 'Cumulative Hospitalized' = 4),
-              selected = 2
-            ),
-            
-            numericInput(
-              'forecast_days',
-              'Forecasting Days Ahead:',
-              min = 1, max = 10, value = 1
-            ),
-            
-            numericInput(
-              'trajectories',
-              'Number of Possible Trajectories:',
-              min = 1, max = 50, value = 10
-            ),
-            
-            actionButton('forecast', 'Forecast')
-          )
-        )
-      )
-    ),
-    
-    tabItem(
-      tabName = 'intervention',
+       
+      ),
+      
       fluidRow(
         column(
           width = 8,
@@ -216,6 +230,8 @@ body <- dashboardBody(
           box(
             status = 'warning', width = NULL,
             title = 'Intervention Settings',
+            footer = 'Having estimated the model on data, here you can see the effect of different interventions.
+                      These can be in the past to answer \'what if\' questions, or in the future.',
             
             numericInput(
               'nr_interventions_forecast',
@@ -224,13 +240,15 @@ body <- dashboardBody(
               value = 1
             ),
             
-            textInput(
-              'days_intervention_forecast',
-              'Days of Interventions',
-              value = '25'
-            ),
+            # textInput(
+            #   'days_intervention_forecast',
+            #   'Days of Interventions',
+            #   value = '25'
+            # ),
             
-            uiOutput('alphas_intervention'),
+            uiOutput('intervention'),
+            # uiOutput('intervention_dates'),
+            # uiOutput('alphas_intervention'),
             actionButton('intervene', 'Intervene')
           )
         )
