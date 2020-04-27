@@ -1,6 +1,8 @@
 library('shiny')
+library('plotly')
 library('shinythemes')
 library('shinydashboard')
+library('shinycssloaders')
   
 
 sidebar <- dashboardSidebar(
@@ -41,23 +43,23 @@ body <- dashboardBody(
             # title = 'Model Forecasts',
             tabPanel(
               'Infected',
-              plotOutput('infectedPlot', height = 500)
+              plotlyOutput('infectedPlot', height = 500) %>% withSpinner(color = '#0dc5c1')
             ),
             tabPanel(
               'Hospitalized',
-              plotOutput('hospitalizedPlot', height = 500)
+              plotOutput('hospitalizedPlot', height = 500) %>% withSpinner(color = '#0dc5c1')
             ),
             tabPanel(
               'Intensive Care',
-              plotOutput('ICPlot', height = 500)
+              plotOutput('ICPlot', height = 500) %>% withSpinner(color = '#0dc5c1')
             ),
             tabPanel(
               'Dead',
-              plotOutput('deadPlot', height = 500)
+              plotOutput('deadPlot', height = 500) %>% withSpinner(color = '#0dc5c1')
             ),
             tabPanel(
               'Show All',
-              plotOutput('allPlot', height = 500)
+              plotOutput('allPlot', height = 500) %>% withSpinner(color = '#0dc5c1')
             )
           )
         ),
@@ -76,7 +78,7 @@ body <- dashboardBody(
               #   'Start of Epidemic',
               #   value = '2020-02-01'
               # ),
-              
+                
               selectInput(
                 'calibration',
                 'Calibrate Model on:',
@@ -102,11 +104,11 @@ body <- dashboardBody(
                 value = 0.05, min = 0, max = 0.30, step = 0.01
               ),
               
-              # sliderInput(
-              #   'Nseed',
-              #   'Initially Infected :',
-              #   value = 0.05, min = 0, max = 0.30, step = 0.01
-              # ),
+              sliderInput(
+                'esmda_iterations',
+                'Model Iterations',
+                value = 8, min = 2, max = 32
+              ),
               
               actionButton('estimate1', 'Estimate')
             ),
@@ -115,101 +117,148 @@ body <- dashboardBody(
               'Core II',
               withMathJax(),
               
-              sliderInput(
-                'R0_range',
-                'Uniform Prior on \\( R_0 \\)',
-                min = 2.5, max = 4.5,
-                value = c(3.3, 3.7)
+              tags$b('Prior on \\( R_0 \\)'),
+              splitLayout(
+                cellWidths = c('50%', '50%'), 
+                numericInput(
+                  'R0_mean', label = withMathJax('\\( \\mu \\)'),
+                  value = 3.40, min = 0, max = 5, step = 0.01
+                ), 
+                numericInput(
+                  'R0_sd', label = withMathJax('\\( \\sigma \\)'),
+                  value = 0.20, min = 0, max = 2, step = 0.01
+                )
               ),
               
-              # numericInput(
-              #   'nr_interventions',
-              #   'Number of Interventions',
-              #   min = 0, max = 100,
-              #   value = 3
-              # ),
-              
-              textInput(
-                'days_intervention',
-                'Days on which the Interventions were applied',
-                value = '5, 7, 13'
+              numericInput(
+                'nr_interventions',
+                'Number of Interventions',
+                min = 0, max = 100,
+                value = 3
               ),
               
-              uiOutput('alphas'),
-              
-              sliderInput(
-                'esmda_iterations',
-                'Iterations for Multiple Data Assimilation',
-                value = 8, min = 2, max = 32
+              checkboxInput(
+                'show_alpha',
+                'Show Past Interventions',
+                value = FALSE
               ),
-              
+              uiOutput('prior_intervention'),
               actionButton('estimate2', 'Estimate')
             ),
             
             tabPanel(
               'Expert',
               
-              textInput(
-                'dfrac',
-                'Gaussian Prior on  % Hospitalized People Dying (\\( \\mu, \\sigma \\)):',
-                value = '0.30, 0.50'
+              tags$b('Prior on % Hospitalized People Dying'),
+              splitLayout(
+                cellWidths = c('50%', '50%'), 
+                numericInput(
+                  'dfrac_mean', label = withMathJax('\\( \\mu \\)'),
+                  value = 0.30, min = 0, max = 1, step = 0.01
+                ), 
+                numericInput(
+                  'dfrac_sd', label = withMathJax('\\( \\sigma \\)'),
+                  value = 0.50, min = 0, max = 2, step = 0.01
+                )
               ),
               
-              textInput(
-                'icudfrac',
-                'Gaussian Prior on  % IC Patients Dying:',
-                value = '0.30, 0.20'
+              tags$b('Prior on % IC Patients Dying'),
+              splitLayout(
+                cellWidths = c('50%', '50%'), 
+                numericInput(
+                  'icudfrac_mean', label = withMathJax('\\( \\mu \\)'),
+                  value = 0.30, min = 0, max = 1, step = 0.01
+                ), 
+                numericInput(
+                  'icudfrac_sd', label = withMathJax('\\( \\sigma \\)'),
+                  value = 0.20, min = 0, max = 2, step = 0.01
+                )
               ),
               
-              textInput(
-                'delayHOS',
-                'Gaussian Prior on Delay Between Hospitalisation and Recovery (\\( a, b \\))',
-                value = '9, 2'
+              tags$b('Prior on Delay Between Hospitalisation and Recovery'),
+              splitLayout(
+                cellWidths = c('50%', '50%'), 
+                numericInput(
+                  'delayHOS_mean', label = withMathJax('\\( \\mu \\)'),
+                  value = 9, min = 0, max = 50, step = 0.01
+                ), 
+                numericInput(
+                  'delayHOS_sd', label = withMathJax('\\( \\sigma \\)'),
+                  value = 2, min = 0, max = 10, step = 0.01
+                )
               ),
               
-              textInput(
-                'delayHOSREC',
-                'Gaussian Prior on Hospitalisation Recovery (no IC)',
-                value = '12, 0'
+              tags$b('Prior on Hospitalisation Recovery (no IC)'),
+              splitLayout(
+                cellWidths = c('50%', '50%'), 
+                numericInput(
+                  'delayHOSREC_mean', label = withMathJax('\\( \\mu \\)'),
+                  value = 12, min = 0, max = 50, step = 0.01
+                ), 
+                numericInput(
+                  'delayHOSREC_sd', label = withMathJax('\\( \\sigma \\)'),
+                  value = 0, min = 0, max = 10, step = 0.01
+                )
               ),
               
-              textInput(
-                'delayHOSD',
-                'Gaussian Prior on Death of Hospitalised (no IC)',
-                value = '3, 2'
+              tags$b('Prior on Death of Hospitalised (no IC)'),
+              splitLayout(
+                cellWidths = c('50%', '50%'), 
+                numericInput(
+                  'delayHOSD_mean', label = withMathJax('\\( \\mu \\)'),
+                  value = 3, min = 0, max = 50, step = 0.01
+                ), 
+                numericInput(
+                  'delayHOSD_sd', label = withMathJax('\\( \\sigma \\)'),
+                  value = 2, min = 0, max = 10, step = 0.01
+                )
               ),
               
-              textInput(
-                'delayICUCAND',
-                'Gaussian Prior on Hospitalised to IC',
-                value = '0, 0'
+              tags$b('Prior on Hospitalised to IC'),
+              splitLayout(
+                cellWidths = c('50%', '50%'), 
+                numericInput(
+                  'delayICUCAND_mean', label = withMathJax('\\( \\mu \\)'),
+                  value = 0, min = 0, max = 50, step = 0.01
+                ), 
+                numericInput(
+                  'delayICUCAND_sd', label = withMathJax('\\( \\sigma \\)'),
+                  value = 0, min = 0, max = 10, step = 0.01
+                )
               ),
               
-              textInput(
-                'delayICUD',
-                'Gaussian Prior on Time for IC Patients to Die',
-                value = '8, 4'
+              tags$b('Prior on Time for IC Patients to Die'),
+              splitLayout(
+                cellWidths = c('50%', '50%'), 
+                numericInput(
+                  'delayICUD_mean', label = withMathJax('\\( \\mu \\)'),
+                  value = 8, min = 0, max = 50, step = 0.01
+                ), 
+                numericInput(
+                  'delayICUD_sd', label = withMathJax('\\( \\sigma \\)'),
+                  value = 4, min = 0, max = 10, step = 0.01
+                )
               ),
               
               actionButton('estimate3', 'Estimate')
-            ),
-            
-            tabPanel(
-              'Plotting',
-              
-              dateRangeInput(
-                'zoomdate',
-                'Zoom in on Dates'
-              ),
-              
-              checkboxInput(
-                'ylog',
-                'Logarithmic Plot',
-                value = FALSE
-              ),
-              
-              actionButton('updatePlot', 'Update Plot')
             )
+            
+            # tabPanel(
+            #   'Plotting',
+            #   
+            #   dateRangeInput(
+            #     'zoomdate',
+            #     'Zoom in on Dates'
+            #   ),
+            #   
+            #   checkboxInput(
+            #     'ylog',
+            #     'Logarithmic Plot',
+            #     value = FALSE
+            #   ),
+            #   
+            #   actionButton('updatePlot', 'Update Plot')
+            # )
           )
         )
         
@@ -221,7 +270,7 @@ body <- dashboardBody(
           width = 8,
           box(
             title = 'Effect of Interventions', width = NULL, solidHeader = TRUE, status = 'primary',
-            plotOutput('interventionPlot', height = 500)
+            plotOutput('interventionPlot', height = 500) %>% withSpinner(color = '#0dc5c1')
           )
         ),
         
@@ -240,15 +289,7 @@ body <- dashboardBody(
               value = 1
             ),
             
-            # textInput(
-            #   'days_intervention_forecast',
-            #   'Days of Interventions',
-            #   value = '25'
-            # ),
-            
             uiOutput('intervention'),
-            # uiOutput('intervention_dates'),
-            # uiOutput('alphas_intervention'),
             actionButton('intervene', 'Intervene')
           )
         )

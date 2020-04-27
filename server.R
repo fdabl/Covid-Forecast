@@ -1,4 +1,6 @@
 library('shiny')
+library('plotly')
+library('ggplot2')
 library('jsonlite')
 source('helpers.R')
 
@@ -14,6 +16,42 @@ shinyServer(function(input, output, session) {
   nr_inter_for <- reactiveValues(data = NULL)
   days_inter <- reactiveValues(data = NULL)
   days_inter_for <- reactiveValues(data = NULL)
+  show_prior_interventions <- reactiveValues(data = NULL)
+  
+  observeEvent(input$nr_interventions, { nr_inter$data <- input$nr_interventions })
+  observeEvent(input$show_alpha, { show_prior_interventions$data <- input$show_alpha })
+  observeEvent(input$nr_interventions_forecast, { nr_inter_for$data <- input$nr_interventions_forecast })
+  
+  run_model <- function(input) {
+    config <- create_config(input)
+    print(config)
+    # run_model_py(config)
+  }
+  
+  # User clicks on 'Estimate' to run the model
+  observeEvent(input$estimate1, {
+    est$data <- randn_py(100)
+    run_model(input)
+  })
+  
+  observeEvent(input$estimate2, { est$data <- randn_py(100) })
+  observeEvent(input$estimate3, { est$data <- randn_py(100) })
+  
+  observeEvent(input$forecast, { pred$data <- randn_py(100) })
+  observeEvent(input$intervene, { inter$data <- randn_py(100) })
+  
+  
+  observeEvent(input$days_intervention, {
+    # TODO: Input handling
+    days <- strsplit(input$days_intervention, ',')[[1]]
+    days_inter$data <- days
+  })
+  
+  observeEvent(input$days_intervention_forecast, {
+    # TODO: Input handling
+    days <- strsplit(input$days_intervention_forecast, ',')[[1]]
+    days_inter_for$data <- days
+  })
   
   
   output$introduction <- renderText({
@@ -59,38 +97,34 @@ shinyServer(function(input, output, session) {
     paste(res, '<p>', time, '</p>')
   })
   
-  observeEvent(input$nr_interventions, {
-    nr_inter$data <- input$nr_interventions
+  
+  # Allow user to set the prior interventions when box is ticked
+  output$prior_intervention <- renderUI({
+    if (show_prior_interventions$data) {
+      output <- tagList()
+      
+      for (i in seq(nr_inter$data)) {
+        day <- paste0('day_', i)
+        alpha <- paste0('alpha_', i)
+        
+        output[[i]] <- tagList()
+        output[[i]][[1]] <- dateInput(day, paste0('Intervention Date'))
+        output[[i]][[2]] <- sliderInput(
+          alpha,
+          # withMathJax(paste0('Percent R0 Reduction \\( \\alpha', '_', i, '\\)')),
+          withMathJax(paste0('%\\( R_0 \\) Reduction')),
+          min = 0, max = 1,
+          value = c(0.2, 0.6)
+        )
+        
+      }
+      
+      return(output)
+    }
   })
   
-  observeEvent(input$nr_interventions_forecast, {
-    nr_inter_for$data <- input$nr_interventions_forecast
-  })
   
-  observeEvent(input$days_intervention, {
-    # TODO: Input handling
-    days <- strsplit(input$days_intervention, ',')[[1]]
-    days_inter$data <- days
-  })
-  
-  observeEvent(input$days_intervention_forecast, {
-    # TODO: Input handling
-    days <- strsplit(input$days_intervention_forecast, ',')[[1]]
-    days_inter_for$data <- days
-  })
-  
-  output$alphas <- renderUI({
-    lapply(seq(length(days_inter$data)), function(i) {
-      alpha <- paste0('alpha', i)
-      sliderInput(
-        alpha,
-        withMathJax(paste0('Uniform Prior on \\( \\alpha', '_', i, '\\)')),
-        min = 0, max = 1,
-        value = c(0.1, 0.5)
-      )
-    })
-  })
-  
+  # Allow user to set counterfactual / future interventions 
   output$intervention <- renderUI({
     output <- tagList()
     
@@ -112,35 +146,13 @@ shinyServer(function(input, output, session) {
     output
   })
   
-  output$alphas_intervention <- renderUI({
-    lapply(seq(nr_inter_for$data), function(i) {
-      alpha <- paste0('alpha_for', i)
-      sliderInput(
-        alpha,
-        withMathJax(paste0('Percent R0 Reduction of \\( \\alpha', '_', i, '\\)')),
-        min = 0, max = 1,
-        value = c(0.1, 0.2)
-      )
-    })
+  output$infectedPlot <- renderPlotly({
+    if (!is.null(est$data)) {
+      p <- ggplot(data.frame(x = est$data), aes(x = x)) + geom_histogram()
+      ggplotly(p)
+    }
   })
-  
-  
-  observeEvent(input$estimate1, { est$data <- randn_py(100) })
-  observeEvent(input$estimate2, { est$data <- randn_py(100) })
-  observeEvent(input$estimate3, { est$data <- randn_py(100) })
-  
-  observeEvent(input$forecast, {
-    pred$data <- randn_py(100)
-  })
-  
-  observeEvent(input$intervene, {
-    inter$data <- randn_py(100)
-  })
-  
-  output$infectedPlot <- renderPlot({
-    if (!is.null(est$data)) hist(est$data)
-  })
-  
+    
   output$hospitalizedPlot <- renderPlot({
     if (!is.null(est$data)) hist(est$data)
   })
