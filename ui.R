@@ -240,6 +240,19 @@ body <- dashboardBody(
                 )
               ),
               
+              tags$b('Prior on Time for IC Patients to Recover'),
+              splitLayout(
+                cellWidths = c('50%', '50%'), 
+                numericInput(
+                  'delayICUREC_mean', label = withMathJax('\\( \\mu \\)'),
+                  value = 22, min = 0, max = 50, step = 0.01
+                ), 
+                numericInput(
+                  'delayICUREC_sd', label = withMathJax('\\( \\sigma \\)'),
+                  value = 2, min = 0, max = 10, step = 0.01
+                )
+              ),
+              
               actionButton('estimate3', 'Estimate')
             )
             

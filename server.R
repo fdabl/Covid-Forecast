@@ -9,6 +9,9 @@ shinyServer(function(input, output, session) {
   req <- httr::GET("http://worldtimeapi.org/api/ip")
   time <- httr::content(req)$datetime
   
+  config <- reactiveValues(data = NULL)
+  model <- reactiveValues(data = NULL)
+  
   est <- reactiveValues(data = NULL)
   pred <- reactiveValues(data = NULL)
   inter <- reactiveValues(data = NULL)
@@ -22,16 +25,21 @@ shinyServer(function(input, output, session) {
   observeEvent(input$show_alpha, { show_prior_interventions$data <- input$show_alpha })
   observeEvent(input$nr_interventions_forecast, { nr_inter_for$data <- input$nr_interventions_forecast })
   
-  run_model <- function(input) {
-    config <- create_config(input)
-    print(config)
-    # run_model_py(config)
-  }
+  
+  # run_model <- function() {
+  #   config <- fromJSON('config.json')
+  #   res <- run_esmda(toJSON(config, auto_unbox = TRUE))
+  # }
   
   # User clicks on 'Estimate' to run the model
   observeEvent(input$estimate1, {
     est$data <- randn_py(100)
-    run_model(input)
+    config$data <- create_config(input)
+    write(config$data, 'current-config.json')
+    conf <- fromJSON('current-config.json')
+    res <- run_esmda(toJSON(conf, auto_unbox = TRUE))
+    
+    model$data <- res
   })
   
   observeEvent(input$estimate2, { est$data <- randn_py(100) })
@@ -147,8 +155,8 @@ shinyServer(function(input, output, session) {
   })
   
   output$infectedPlot <- renderPlotly({
-    if (!is.null(est$data)) {
-      p <- ggplot(data.frame(x = est$data), aes(x = x)) + geom_histogram()
+    if (!is.null(model$data)) {
+      p <- plot_predictions(config, res, 'ICU')
       ggplotly(p)
     }
   })
