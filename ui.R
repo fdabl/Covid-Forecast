@@ -2,6 +2,7 @@ library('shiny')
 library('plotly')
 library('shinythemes')
 library('shinydashboard')
+library('dashboardthemes')
 library('shinycssloaders')
   
 
@@ -15,6 +16,10 @@ sidebar <- dashboardSidebar(
 )
 
 body <- dashboardBody(
+  shinyDashboardThemes(
+    theme = 'grey_light'
+  ),
+  
   tabItems(
     tabItem(
       tabName = 'introduction',
@@ -40,26 +45,25 @@ body <- dashboardBody(
           tabBox(
             width = NULL,
             id = 'datafigures',
-            # title = 'Model Forecasts',
             tabPanel(
               'Infected',
-              plotlyOutput('infectedPlot', height = 500) %>% withSpinner(color = '#0dc5c1')
+              withSpinner(plotOutput('infectedPlot', height = 500), color = '#0dc5c1')
             ),
             tabPanel(
               'Hospitalized',
-              plotOutput('hospitalizedPlot', height = 500) %>% withSpinner(color = '#0dc5c1')
+              withSpinner(plotOutput('hospitalizedPlot', height = 500), color = '#0dc5c1')
             ),
             tabPanel(
               'Intensive Care',
-              plotOutput('ICPlot', height = 500) %>% withSpinner(color = '#0dc5c1')
+              withSpinner(plotOutput('ICPlot', height = 500), color = '#0dc5c1')
             ),
             tabPanel(
               'Dead',
-              plotOutput('deadPlot', height = 500) %>% withSpinner(color = '#0dc5c1')
+              withSpinner(plotOutput('deadPlot', height = 500), color = '#0dc5c1')
             ),
             tabPanel(
               'Show All',
-              plotOutput('allPlot', height = 500) %>% withSpinner(color = '#0dc5c1')
+              withSpinner(plotOutput('allPlot', height = 500), color = '#0dc5c1')
             )
           )
         ),
@@ -94,7 +98,7 @@ body <- dashboardBody(
               
               sliderInput(
                 'hosfrac',
-                '% Infected People Hospitalized:',
+                '% Infected People Hospitalized (Average):',
                 value = 0.05, min = 0, max = 0.30, step = 0.01
               ),
               
@@ -107,10 +111,10 @@ body <- dashboardBody(
               sliderInput(
                 'esmda_iterations',
                 'Model Iterations',
-                value = 8, min = 2, max = 32
+                value = 4, min = 2, max = 32
               ),
               
-              actionButton('estimate1', 'Estimate')
+              actionButton('run1', 'Run')
             ),
             
             tabPanel(
@@ -134,7 +138,7 @@ body <- dashboardBody(
                 'nr_interventions',
                 'Number of Interventions',
                 min = 0, max = 100,
-                value = 3
+                value = 16
               ),
               
               checkboxInput(
@@ -143,7 +147,7 @@ body <- dashboardBody(
                 value = FALSE
               ),
               uiOutput('prior_intervention'),
-              actionButton('estimate2', 'Estimate')
+              actionButton('run2', 'Run')
             ),
             
             tabPanel(
@@ -253,7 +257,7 @@ body <- dashboardBody(
                 )
               ),
               
-              actionButton('estimate3', 'Estimate')
+              actionButton('run3', 'Run')
             )
             
             # tabPanel(
@@ -283,7 +287,7 @@ body <- dashboardBody(
           width = 8,
           box(
             title = 'Effect of Interventions', width = NULL, solidHeader = TRUE, status = 'primary',
-            plotOutput('interventionPlot', height = 500) %>% withSpinner(color = '#0dc5c1')
+            withSpinner(plotOutput('interventionPlot', height = 500), color = '#0dc5c1')
           )
         ),
         
@@ -303,7 +307,10 @@ body <- dashboardBody(
             ),
             
             uiOutput('intervention'),
-            actionButton('intervene', 'Intervene')
+            actionButton('intervene', 'Intervene'),
+            br(),
+            br(),
+            actionButton('reset', 'Reset Intervention')
           )
         )
       )
