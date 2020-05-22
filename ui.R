@@ -319,10 +319,16 @@ body <- dashboardBody(
     tabItem(
       tabName = 'about',
       fluidPage(
-        box(width = 1000,
-          h3('About'),
-          p(
-           'This Web App was developed by Fabian Dablander from https://scienceversuscorona.com in cooperation with TNO.' 
+        box(
+          width = 1000,
+          HTML(
+            "<h3 style = 'text-align: center;'>About</h3>
+          <p style = 'font-size: 120%; text-align: center;'>
+          This web interface was developed by <a href='https://twitter.com/fdabl' target='_blank'>Fabian Dablander</a>
+          in co-operation with <a href='https://nl.linkedin.com/in/lgbrunner' target='_blank'>Logan Brunner</a> and
+          <a href='https://www.uu.nl/staff/jdamvanwees' target='_blank'>Jan-Diederik van Wees</a> as a
+          <a href='http://scienceversuscorona.com/' target='_blank'>Science versus Corona</a> project
+          <p>"
           )
         )
       )

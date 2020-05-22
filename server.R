@@ -37,8 +37,6 @@ shinyServer(function(input, output, session) {
     config$data <- fromJSON('config.json')
     res <- run_dashboard_wrapper(toJSON(config$data, auto_unbox = TRUE))
     
-    print(res[[1]])
-    
     # After running the model, reset this to FALSE
     has_intervened$boolean <- FALSE
     model$data <- res[[1]]
@@ -47,6 +45,7 @@ shinyServer(function(input, output, session) {
   observeEvent(input$run1, { run_model() })
   observeEvent(input$run2, { run_model() })
   observeEvent(input$run3, { run_model() })
+  observeEvent(input$reset, { has_intervened$boolean <- FALSE })
   
   
   observeEvent(input$intervene, {
@@ -147,7 +146,6 @@ shinyServer(function(input, output, session) {
   })
     
   output$hospitalizedPlot <- renderPlot({
-    print(input)
     cols <- c('#B0E0E6', '#4682B4')
     ylab <- 'Hospitalized Cases'
     title <- 'Hospitalized Cases in The Netherlands'

@@ -34,7 +34,7 @@ source_python('bin/dashboard_wrapper.py')
 # res <- run_dashboard_wrapper(toJSON(config, auto_unbox = TRUE))
 # 
 # config2 <- config
-# config2$single_run <- TRUE
+# config2$single_run <- FALSE
 # res2 <- run_dashboard_wrapper(toJSON(config2, auto_unbox = TRUE))
 
 # - give you updates json (with posterior means and sds) and pass this to single-run
@@ -81,7 +81,7 @@ plot_predictions <- function(config, model, type, cols, ylab, title, show_interv
     scale_colour_manual(
       name = '',
       values = c('Mean' = 'black', 'Median' = 'gray76'),
-      labels = c('Mean','Median')
+      labels = c('Mean', 'Median')
     ) +
     scale_fill_manual(
       name = '',
@@ -117,7 +117,7 @@ plot_interventions <- function(config, model, cols, ylab, title, show_interventi
   colnames(dat) <- c('Time', 'p5', 'p30', 'p50', 'p70', 'p95')
   dat <- data.frame(dat)
   
-  start <- as.Date(config[['startdate']], tryFormats = '%d/%m/%y')
+  start <- as.Date(config[['startdate']], tryFormats = '%m/%d/%y')
   dat$Date <- start + dat$Time - 1
   
   p <- ggplot(dat, aes(x = Date, y = p50)) +
@@ -187,7 +187,6 @@ create_config <- function(input, single_run = FALSE) {
     ALPHAS <- c(ALPHAS, ALPHAS_INTER)
     DAYALPHAS <- c(DAYALPHAS, DAYALPHAS_INTER - as.numeric(startdate))
 
-    print(input[['day_intervention_1']])
     # print(ALPHAS)
     # print(DAYALPHAS)
   }
