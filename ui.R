@@ -83,29 +83,29 @@ body <- dashboardBody(
               #   value = '2020-02-01'
               # ),
                 
-              selectInput(
-                'calibration',
-                'Calibrate Model on:',
-                choices = list('ICU' = 1, 'Dead' = 2, 'Hospitalized' = 3, 'Cumulative Hospitalized' = 4),
-                selected = 2
-              ),
+              # selectInput(
+              #   'calibration',
+              #   'Calibrate Model on:',
+              #   choices = list('ICU' = 1, 'Dead' = 2, 'Hospitalized' = 3, 'Cumulative Hospitalized' = 4),
+              #   selected = 2
+              # ),
               
               numericInput(
                 'delayREC',
-                'Recovery of Non-Hospitalised Patients',
+                'Average Recovery of Non-Hospitalised Patients (Days)',
                 value = 12
               ),
               
               sliderInput(
                 'hosfrac',
                 '% Infected People Hospitalized (Average):',
-                value = 0.05, min = 0, max = 0.30, step = 0.01
+                value = 0.05, min = 0.01, max = 0.30, step = 0.01
               ),
               
               sliderInput(
                 'ICUfrac',
                 '% Hospitalized People Needing IC:',
-                value = 0.05, min = 0, max = 0.30, step = 0.01
+                value = 0.05, min = 0.01, max = 0.30, step = 0.01
               ),
               
               sliderInput(
@@ -137,7 +137,7 @@ body <- dashboardBody(
               numericInput(
                 'nr_interventions',
                 'Number of Interventions',
-                min = 0, max = 100,
+                min = 1, max = 100,
                 value = 16
               ),
               
@@ -302,7 +302,7 @@ body <- dashboardBody(
             numericInput(
               'nr_interventions_forecast',
               'Number of Interventions',
-              min = 0, max = 100,
+              min = 1, max = 100,
               value = 1
             ),
             

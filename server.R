@@ -32,7 +32,7 @@ shinyServer(function(input, output, session) {
   
   # User clicks on 'Estimate' to run the model
   run_model <- function() {
-    config_obj$data <- create_config(input, single_run = FALSE)
+    config_obj$data <- create_config(input, NULL, single_run = FALSE)
     write(config_obj$data, 'config.json')
     config$data <- fromJSON('config.json')
     res <- run_dashboard_wrapper(toJSON(config$data, auto_unbox = TRUE))
@@ -40,6 +40,7 @@ shinyServer(function(input, output, session) {
     # After running the model, reset this to FALSE
     has_intervened$boolean <- FALSE
     model$data <- res[[1]]
+    model$posterior_alphas <- res[[2]][['alpha']]
   }
   
   observeEvent(input$run1, { run_model() })
@@ -49,26 +50,31 @@ shinyServer(function(input, output, session) {
   
   
   observeEvent(input$intervene, {
-    # Update the config data with 'single_run = TRUE'
-    config_obj$data <- create_config(input, single_run = TRUE)
-    write(config_obj$data, 'config.json')
-    config$data <- fromJSON('config.json')
     
-    # Estimate a single run of the model
-    res <- run_dashboard_wrapper(toJSON(config$data, auto_unbox = TRUE))
-    
-    # res <- list('alpha' = seq(1, 348))
-    # 
-    # for (i in seq(10)) {
-    #   d <- run_dashboard_wrapper(toJSON(config$data, auto_unbox = TRUE))
-    #   res[['alpha']] <- cbind(res[['alpha']], d[[1]][['alpha']][, 2])
-    # }
-    
-    # print(res[['alpha']])
-    # model$single_data <- res
-    
-    has_intervened$boolean <- TRUE
-    model$single_data <- res[[1]]
+    # Need to have run the model before intervention is possible!
+    if (!is.null(model$data)) {
+      
+      # Update the config data with 'single_run = TRUE'
+      config_obj$data <- create_config(input, model$posterior_alphas, single_run = TRUE)
+      write(config_obj$data, 'config.json')
+      config$data <- fromJSON('config.json')
+      
+      # Estimate a single run of the model
+      res <- run_dashboard_wrapper(toJSON(config$data, auto_unbox = TRUE))
+      
+      # res <- list('alpha' = seq(1, 348))
+      # 
+      # for (i in seq(10)) {
+      #   d <- run_dashboard_wrapper(toJSON(config$data, auto_unbox = TRUE))
+      #   res[['alpha']] <- cbind(res[['alpha']], d[[1]][['alpha']][, 2])
+      # }
+      
+      # print(res[['alpha']])
+      # model$single_data <- res
+      
+      has_intervened$boolean <- TRUE
+      model$single_data <- res[[1]]
+    }
   })
   
   
@@ -124,7 +130,7 @@ shinyServer(function(input, output, session) {
         column(6, dateInput(day, paste0('Intervention Date'))),
         column(6, numericInput(
             alpha, withMathJax(paste0('% Social Contact')),
-            value = 0.50, step = 0.01, min = 0, max = 1
+            value = 0.30, step = 0.01, min = 0, max = 1
           )
         )
       )

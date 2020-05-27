@@ -25,14 +25,14 @@ use_python('/anaconda3/bin/python3')
 # use_virtualenv('python_env', required = TRUE)
 
 # source_python('source.py')
-source_python('bin/dashboard_wrapper.py')
+# source_python('bin/dashboard_wrapper.py')
 # source_python('Covid-SEIR/bin/corona_esmda.py')
 # source_python('Covid-SEIR/src/api_nl_data.py')
 
 # config <- fromJSON('Covid-SEIR/configs/netherlands_dashboard.json')
 # config <- fromJSON('config.json')
 # res <- run_dashboard_wrapper(toJSON(config, auto_unbox = TRUE))
-# 
+# # 
 # config2 <- config
 # config2$single_run <- FALSE
 # res2 <- run_dashboard_wrapper(toJSON(config2, auto_unbox = TRUE))
@@ -97,12 +97,26 @@ plot_predictions <- function(config, model, type, cols, ylab, title, show_interv
     )
   
   if (show_intervention) {
+    
+    # Hack to make the plotting of the intervention line work for infected
+    if (type == 'infected') {
+      type <- 'infected_cum'
+    }
+    
     preddat <- model$single_data[[type]]
     preddat <- data.frame('Time' = preddat[, 1], 'Mean' = preddat[, 2])
     preddat$Date <- start + preddat$Time - 1
     
     cols <- brewer.pal(3, 'Set1')
-    p <- p + geom_line(data = preddat, aes(x = Date, y = Mean), color = cols[1])
+    p <- p + 
+      geom_line(data = preddat, aes(x = Date, y = Mean, color = 'Counterfactual')) +
+      scale_colour_manual(
+        name = '',
+        values = c('Counterfactual' = cols[1], 'Mean' = 'black', 'Median' = 'gray76'),
+        labels = c('Intervention (Mean)', 'Mean', 'Median')
+      )
+    
+    print('Im here!')
   }
   
   p #+ scale_x_date(limits = c(startdate, startdate + 4 * 30), breaks = scales::pretty_breaks(n = 8))
@@ -151,7 +165,13 @@ plot_interventions <- function(config, model, cols, ylab, title, show_interventi
     preddat$Date <- start + preddat$Time - 1
 
     cols <- brewer.pal(3, 'Set1')
-    p <- p + geom_line(data = preddat, aes(x = Date, y = Mean), color = cols[1])
+    p <- p +
+      geom_line(data = preddat, aes(x = Date, y = Mean, color = 'Counterfactual')) +
+      scale_colour_manual(
+        name = '',
+        values = c('Counterfactual' = cols[1], 'Mean' = 'black', 'Median' = 'gray76'),
+        labels = c('Intervention (Mean)', 'Mean', 'Median')
+      )
   }
   
   p #+ scale_x_date(limits = c(startdate, startdate + 4 * 30), breaks = scales::pretty_breaks(n = 8))
@@ -159,7 +179,7 @@ plot_interventions <- function(config, model, cols, ylab, title, show_interventi
 
 
 
-create_config <- function(input, single_run = FALSE) {
+create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
   
   # If user shows the alphas, use the alpha input
   # Otherwise use the global variables (defined above)
@@ -175,18 +195,19 @@ create_config <- function(input, single_run = FALSE) {
   # If the user has intervened (single_run = TRUE), add the intervention alphas and
   # the days on which the intervention took place to ALPHAS and DAYALPHAS
   if (single_run) {
-    print('has intervened!')
     alphas_inter <- paste0('alpha_intervention_', seq(input$nr_interventions_forecast))
     dayalphas_inter <- paste0('day_intervention_', seq(input$nr_interventions_forecast))
 
-    ALPHAS_INTER <- lapply(alphas_inter, function(alpha) c(1 - input[[alpha]], 1 - input[[alpha]] + 0.10))
+    ALPHAS_INTER <- lapply(alphas_inter, function(alpha) c(1 - input[[alpha]], 0.10))
     DAYALPHAS_INTER <- sapply(dayalphas_inter, function(day) input[[day]])
 
     startdate <- as.Date('3/1/20', tryFormats = '%m/%d/%y')
 
-    ALPHAS <- c(ALPHAS, ALPHAS_INTER)
+    # Add intervention alphas
+    ALPHAS <- c(posterior_alphas, ALPHAS_INTER)
     DAYALPHAS <- c(DAYALPHAS, DAYALPHAS_INTER - as.numeric(startdate))
-
+    
+    # ALPHAS <- posterior_alphas
     # print(ALPHAS)
     # print(DAYALPHAS)
   }
@@ -291,6 +312,7 @@ create_config <- function(input, single_run = FALSE) {
     'hist_time_steps' = c(30, 35, 40, 60),
     'p_values' =  c(0.05, 0.3, 0.5, 0.7, 0.95),
     
+    'alpha_normal' = single_run,
     'alpha' = ALPHAS,
     'dayalpha' = DAYALPHAS,
     
