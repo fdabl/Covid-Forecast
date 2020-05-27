@@ -41,6 +41,7 @@ shinyServer(function(input, output, session) {
     has_intervened$boolean <- FALSE
     model$data <- res[[1]]
     model$posterior_alphas <- res[[2]][['alpha']]
+    model$config <- res[[2]]
   }
   
   observeEvent(input$run1, { run_model() })
@@ -55,12 +56,24 @@ shinyServer(function(input, output, session) {
     if (!is.null(model$data)) {
       
       # Update the config data with 'single_run = TRUE'
-      config_obj$data <- create_config(input, model$posterior_alphas, single_run = TRUE)
-      write(config_obj$data, 'config.json')
-      config$data <- fromJSON('config.json')
+      # config_obj$data <- create_config(input, model$posterior_alphas, single_run = TRUE)
+      # write(config_obj$data, 'config.json')
+      # config$data <- fromJSON('config.json')
+      
       
       # Estimate a single run of the model
-      res <- run_dashboard_wrapper(toJSON(config$data, auto_unbox = TRUE))
+      config <- model$config
+      config$single_run <- TRUE
+      
+      alphas_inter <- paste0('alpha_intervention_', seq(input$nr_interventions_forecast))
+      alphas_inter <- lapply(alphas_inter, function(alpha) list(1 - input[[alpha]], 0.10))
+      alphas <- c(model$posterior_alphas, alphas_inter)
+      
+      print(alphas)
+      config$alpha <- alphas
+      print(config)
+      
+      res <- run_dashboard_wrapper(toJSON(config, auto_unbox = TRUE))
       
       # res <- list('alpha' = seq(1, 348))
       # 

@@ -115,8 +115,6 @@ plot_predictions <- function(config, model, type, cols, ylab, title, show_interv
         values = c('Counterfactual' = cols[1], 'Mean' = 'black', 'Median' = 'gray76'),
         labels = c('Intervention (Mean)', 'Mean', 'Median')
       )
-    
-    print('Im here!')
   }
   
   p #+ scale_x_date(limits = c(startdate, startdate + 4 * 30), breaks = scales::pretty_breaks(n = 8))
@@ -204,11 +202,12 @@ create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
     startdate <- as.Date('3/1/20', tryFormats = '%m/%d/%y')
 
     # Add intervention alphas
-    ALPHAS <- c(posterior_alphas, ALPHAS_INTER)
-    DAYALPHAS <- c(DAYALPHAS, DAYALPHAS_INTER - as.numeric(startdate))
+    # ALPHAS <- c(posterior_alphas, ALPHAS_INTER)
+    # DAYALPHAS <- c(DAYALPHAS, DAYALPHAS_INTER - as.numeric(startdate))
     
+    ALPHAS <- posterior_alphas
     # ALPHAS <- posterior_alphas
-    # print(ALPHAS)
+    print(ALPHAS)
     # print(DAYALPHAS)
   }
   
