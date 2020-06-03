@@ -308,6 +308,11 @@ body <- dashboardBody(
             
             uiOutput('intervention'),
             actionButton('intervene', 'Intervene'),
+            checkboxInput(
+              'show_samples',
+              'Show Samples of Interventions (Otherwise only Mean Intervention)',
+              value = FALSE
+            ),
             br(),
             br(),
             actionButton('reset', 'Reset Intervention')

@@ -25,7 +25,7 @@ use_python('/anaconda3/bin/python3')
 # use_virtualenv('python_env', required = TRUE)
 
 # source_python('source.py')
-# source_python('bin/dashboard_wrapper.py')
+source_python('bin/dashboard_wrapper.py')
 # source_python('Covid-SEIR/bin/corona_esmda.py')
 # source_python('Covid-SEIR/src/api_nl_data.py')
 
@@ -61,7 +61,7 @@ merge_runs <- function(model_data, single_data) {
   res
 }
 
-plot_predictions <- function(config, model, type, cols, ylab, title, show_intervention = FALSE) {
+plot_predictions <- function(config, model, type, cols, ylab, title, show_intervention = FALSE, show_samples = FALSE) {
   res <- model$data
   dat <- res[[type]]
   colnames(dat) <- c('Time', 'Mean', 'p5', 'p30', 'p50', 'p70', 'p95', 'Observed')
@@ -103,22 +103,56 @@ plot_predictions <- function(config, model, type, cols, ylab, title, show_interv
       type <- 'infected_cum'
     }
     
-    preddat <- model$single_data[[type]]
-    preddat <- data.frame('Time' = preddat[, 1], 'Mean' = preddat[, 2])
-    preddat$Date <- start + preddat$Time - 1
+    dat <- model$single_data[[type]]
+    # n <- nrow(dat)
+    # preddat <- data.frame(
+    #   'Time' = rep(dat[, 1], 5),
+    #   # 'Label' = c(rep('Mean', n), rep('Sample1', n), rep('Sample2', n), rep('Sample3', n), rep('Sample4', n)),
+    #   'Label' = c(rep('Mean', n), rep('Sample1', n * 4)),
+    #   'Value' = c(dat[, 2], dat[, 3], dat[, 4], dat[, 5], dat[, 6])
+    # )
     
+    preddat <- data.frame(
+      'Time' = dat[, 1], 'Mean' = dat[, 2],
+      'Sample1' = dat[, 3], 'Sample2' = dat[, 4],
+      'Sample3' = dat[, 5], 'Sample4' = dat[, 6]
+    )
+    preddat$Date <- start + preddat$Time - 1
     cols <- brewer.pal(3, 'Set1')
-    p <- p + 
-      geom_line(data = preddat, aes(x = Date, y = Mean, color = 'Counterfactual')) +
-      scale_colour_manual(
-        name = '',
-        values = c('Counterfactual' = cols[1], 'Mean' = 'black', 'Median' = 'gray76'),
-        labels = c('Intervention (Mean)', 'Mean', 'Median')
-      )
+    
+    if (show_samples) {
+      p <- p + 
+        geom_line(data = preddat, aes(x = Date, y = Mean, color = 'Intervention')) +
+        geom_line(data = preddat, aes(x = Date, y = Sample1, color = 'Intervention')) +
+        geom_line(data = preddat, aes(x = Date, y = Sample2, color = 'Intervention')) +
+        geom_line(data = preddat, aes(x = Date, y = Sample3, color = 'Intervention')) +
+        geom_line(data = preddat, aes(x = Date, y = Sample4, color = 'Intervention')) +
+        scale_colour_manual(
+          name = '',
+          values = c(
+            'Intervention' = '#88d969', 'Mean' = 'black', 'Median' = 'gray76'
+          ),
+          labels = c('Intervention', 'Mean', 'Median')
+        )
+    } else {
+      p <- p + 
+        geom_line(data = preddat, aes(x = Date, y = Mean, color = 'Intervention')) +
+        scale_colour_manual(
+          name = '',
+          values = c('Intervention' = '#88d969', 'Mean' = 'black', 'Median' = 'gray76'),
+          labels = c('Intervention', 'Mean', 'Median')
+        )
+    }
   }
   
-  p #+ scale_x_date(limits = c(startdate, startdate + 4 * 30), breaks = scales::pretty_breaks(n = 8))
+  p +
+    guides(
+      color = guide_legend(order = 1),
+      fill = guide_legend(order = 2)
+    )
+    #+ scale_x_date(limits = c(startdate, startdate + 4 * 30), breaks = scales::pretty_breaks(n = 8))
 }
+
 
 plot_interventions <- function(config, model, cols, ylab, title, show_intervention = FALSE) {
   

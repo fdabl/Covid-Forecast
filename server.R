@@ -155,10 +155,13 @@ shinyServer(function(input, output, session) {
   output$infectedPlot <- renderPlot({
     cols <- c('#FFE4E1', '#F08080')
     ylab <- 'Confirmed Cases'
-    title <- 'Confirmed Cases in The Netherlands'
+    title <- 'Cumulative Confirmed Cases in The Netherlands'
     
     if (!is.null(model$data)) {
-      p <- plot_predictions(config$data, model, 'infected', cols, ylab, title, has_intervened$boolean)
+      p <- plot_predictions(
+        config$data, model, 'infected', cols, ylab,
+        title, has_intervened$boolean, input$show_samples
+      )
       reset$data <- FALSE
       p
     }
@@ -167,10 +170,13 @@ shinyServer(function(input, output, session) {
   output$hospitalizedPlot <- renderPlot({
     cols <- c('#B0E0E6', '#4682B4')
     ylab <- 'Hospitalized Cases'
-    title <- 'Hospitalized Cases in The Netherlands'
+    title <- 'Cumulative Hospitalized Cases in The Netherlands'
     
     if (!is.null(model$data)) {
-      p <- plot_predictions(config$data, model, 'hospitalized', cols, ylab, title, has_intervened$boolean)
+      p <- plot_predictions(
+        config$data, model, 'hospitalizedcum', cols, ylab,
+        title, has_intervened$boolean, input$show_samples
+      )
       reset$data <- FALSE
       p
     }
@@ -182,7 +188,10 @@ shinyServer(function(input, output, session) {
     title <- 'Intensive Care Cases in The Netherlands'
     
     if (!is.null(model$data)) {
-      p <- plot_predictions(config$data, model, 'ICU', cols, ylab, title, has_intervened$boolean)
+      p <- plot_predictions(
+        config$data, model, 'ICU', cols, ylab,
+        title, has_intervened$boolean, input$show_samples
+      )
       reset$data <- FALSE
       p
     }
@@ -191,10 +200,13 @@ shinyServer(function(input, output, session) {
   output$deadPlot <- renderPlot({
     cols <- c('#C0C0C0', '#808080')
     ylab <- 'Mortalities'
-    title <- 'Mortalities in The Netherlands'
+    title <- 'Cumulative Mortalities in The Netherlands'
     
     if (!is.null(model$data)) {
-      p <- plot_predictions(config$data, model, 'dead', cols, ylab, title, has_intervened$boolean)
+      p <- plot_predictions(
+        config$data, model, 'dead', cols, ylab,
+        title, has_intervened$boolean, input$show_samples
+      )
       reset$data <- FALSE
       p
     }
@@ -204,22 +216,26 @@ shinyServer(function(input, output, session) {
     if (!is.null(model$data)) {
       p1 <- plot_predictions(
         config$data, model, 'infected', c('#FFE4E1', '#F08080'),
-        'Confirmed Cases', 'Confirmed Cases in The Netherlands', has_intervened$boolean
+        'Confirmed Cases', 'Cumulative Confirmed Cases in The Netherlands',
+        has_intervened$boolean, input$show_samples
       )
       
       p2 <- plot_predictions(
-        config$data, model, 'hospitalized', c('#B0E0E6', '#4682B4'),
-        'Hospitalized Cases', 'Hospitalized Cases in The Netherlands', has_intervened$boolean
+        config$data, model, 'hospitalizedcum', c('#B0E0E6', '#4682B4'),
+        'Hospitalized Cases', 'Cumulative Hospitalized Cases in The Netherlands',
+        has_intervened$boolean, input$show_samples
       )
       
       p3 <- plot_predictions(
         config$data, model, 'ICU', c('#FFDAB9', '#F4A460'),
-        'Intensive Care Cases', 'Intensive Care Cases in The Netherlands', has_intervened$boolean
+        'Intensive Care Cases', 'Intensive Care Cases in The Netherlands',
+        has_intervened$boolean, input$show_samples
       )
       
       p4 <- plot_predictions(
         config$data, model, 'dead', c('#C0C0C0', '#808080'),
-        'Mortalities', 'Mortalities in The Netherlands', has_intervened$boolean
+        'Mortalities', 'Cumulative Mortalities in The Netherlands',
+        has_intervened$boolean, input$show_samples
       )
       
       gridExtra::grid.arrange(p1, p2, p3, p4, nrow = 2, ncol = 2)
