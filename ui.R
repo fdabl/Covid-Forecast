@@ -26,13 +26,13 @@ body <- dashboardBody(
       fluidPage(
         fluidRow(
           box(
-            width = 1000,
+            width = NULL,
             htmlOutput('introduction')
           )
         )
       ),
       box(
-        width = 1000,
+        width = NULL,
         htmlOutput('structure')
       )
     ),
@@ -89,29 +89,34 @@ body <- dashboardBody(
               #   choices = list('ICU' = 1, 'Dead' = 2, 'Hospitalized' = 3, 'Cumulative Hospitalized' = 4),
               #   selected = 2
               # ),
+              HTML(
+                'Here, you can tweak the core model parameters.'
+              ),
+              
+              tags$hr(),
               
               numericInput(
                 'delayREC',
-                'Average Recovery of Non-Hospitalised Patients (Days)',
-                value = 12
+                'Average Recovery Time of Non-Hospitalised Patients (Days)',
+                value = 12, width = '100%'
               ),
               
               sliderInput(
                 'hosfrac',
-                '% Infected People Hospitalized (Average):',
-                value = 0.05, min = 0.01, max = 0.30, step = 0.01
+                'Average % of Infected People Needing Hospitalization:',
+                value = 0.05, min = 0.01, max = 0.30, step = 0.01, width = '100%'
               ),
               
               sliderInput(
                 'ICUfrac',
-                '% Hospitalized People Needing IC:',
-                value = 0.05, min = 0.01, max = 0.30, step = 0.01
+                'Average % of Hospitalized People Needing Intensive Care:',
+                value = 0.05, min = 0.01, max = 0.30, step = 0.01, width = '100%'
               ),
               
               sliderInput(
                 'esmda_iterations',
                 'Model Iterations',
-                value = 4, min = 2, max = 32
+                value = 4, min = 2, max = 16, width = '100%'
               ),
               
               actionButton('run1', 'Run')
@@ -121,16 +126,23 @@ body <- dashboardBody(
               'Core II',
               withMathJax(),
               
+              HTML(
+                'Here, you can change the Gaussian prior on R<sub>0</sub> and include past interventions. For the Netherlands,
+                we have added past interventions.'
+              ),
+              
+              tags$hr(),
+              
               tags$b('Prior on \\( R_0 \\)'),
               splitLayout(
                 cellWidths = c('50%', '50%'), 
                 numericInput(
                   'R0_mean', label = withMathJax('\\( \\mu \\)'),
-                  value = 3.40, min = 0, max = 5, step = 0.01
+                  value = 3.40, min = 0, max = 5, step = 0.01, width = '100%'
                 ), 
                 numericInput(
                   'R0_sd', label = withMathJax('\\( \\sigma \\)'),
-                  value = 0.20, min = 0, max = 2, step = 0.01
+                  value = 0.20, min = 0, max = 2, step = 0.01, width = '100%'
                 )
               ),
               
@@ -138,7 +150,7 @@ body <- dashboardBody(
                 'nr_interventions',
                 'Number of Interventions',
                 min = 1, max = 100,
-                value = 16
+                value = 16, width = '100%'
               ),
               
               checkboxInput(
@@ -153,16 +165,22 @@ body <- dashboardBody(
             tabPanel(
               'Expert',
               
+              HTML(
+                'In this expert panel, you can change the more subtle components of the model by changing the priors on key parameters.'
+              ),
+              
+              tags$hr(),
+              
               tags$b('Prior on % Hospitalized People Dying'),
               splitLayout(
                 cellWidths = c('50%', '50%'), 
                 numericInput(
                   'dfrac_mean', label = withMathJax('\\( \\mu \\)'),
-                  value = 0.30, min = 0, max = 1, step = 0.01
+                  value = 0.30, min = 0, max = 1, step = 0.01, width = '100%'
                 ), 
                 numericInput(
                   'dfrac_sd', label = withMathJax('\\( \\sigma \\)'),
-                  value = 0.50, min = 0, max = 2, step = 0.01
+                  value = 0.50, min = 0, max = 2, step = 0.01, width = '100%'
                 )
               ),
               
@@ -171,11 +189,11 @@ body <- dashboardBody(
                 cellWidths = c('50%', '50%'), 
                 numericInput(
                   'icudfrac_mean', label = withMathJax('\\( \\mu \\)'),
-                  value = 0.30, min = 0, max = 1, step = 0.01
+                  value = 0.30, min = 0, max = 1, step = 0.01, width = '100%'
                 ), 
                 numericInput(
                   'icudfrac_sd', label = withMathJax('\\( \\sigma \\)'),
-                  value = 0.20, min = 0, max = 2, step = 0.01
+                  value = 0.20, min = 0, max = 2, step = 0.01, width = '100%'
                 )
               ),
               
@@ -184,11 +202,11 @@ body <- dashboardBody(
                 cellWidths = c('50%', '50%'), 
                 numericInput(
                   'delayHOS_mean', label = withMathJax('\\( \\mu \\)'),
-                  value = 9, min = 0, max = 50, step = 0.01
+                  value = 9, min = 0, max = 50, step = 0.01, width = '100%'
                 ), 
                 numericInput(
                   'delayHOS_sd', label = withMathJax('\\( \\sigma \\)'),
-                  value = 2, min = 0, max = 10, step = 0.01
+                  value = 2, min = 0, max = 10, step = 0.01, width = '100%'
                 )
               ),
               
@@ -197,11 +215,11 @@ body <- dashboardBody(
                 cellWidths = c('50%', '50%'), 
                 numericInput(
                   'delayHOSREC_mean', label = withMathJax('\\( \\mu \\)'),
-                  value = 12, min = 0, max = 50, step = 0.01
+                  value = 12, min = 0, max = 50, step = 0.01, width = '100%'
                 ), 
                 numericInput(
                   'delayHOSREC_sd', label = withMathJax('\\( \\sigma \\)'),
-                  value = 0, min = 0, max = 10, step = 0.01
+                  value = 0, min = 0, max = 10, step = 0.01, width = '100%'
                 )
               ),
               
@@ -210,11 +228,11 @@ body <- dashboardBody(
                 cellWidths = c('50%', '50%'), 
                 numericInput(
                   'delayHOSD_mean', label = withMathJax('\\( \\mu \\)'),
-                  value = 3, min = 0, max = 50, step = 0.01
+                  value = 3, min = 0, max = 50, step = 0.01, width = '100%'
                 ), 
                 numericInput(
                   'delayHOSD_sd', label = withMathJax('\\( \\sigma \\)'),
-                  value = 2, min = 0, max = 10, step = 0.01
+                  value = 2, min = 0, max = 10, step = 0.01, width = '100%'
                 )
               ),
               
@@ -223,11 +241,11 @@ body <- dashboardBody(
                 cellWidths = c('50%', '50%'), 
                 numericInput(
                   'delayICUCAND_mean', label = withMathJax('\\( \\mu \\)'),
-                  value = 0, min = 0, max = 50, step = 0.01
+                  value = 0, min = 0, max = 50, step = 0.01, width = '100%'
                 ), 
                 numericInput(
                   'delayICUCAND_sd', label = withMathJax('\\( \\sigma \\)'),
-                  value = 0, min = 0, max = 10, step = 0.01
+                  value = 0, min = 0, max = 10, step = 0.01, width = '100%'
                 )
               ),
               
@@ -236,11 +254,11 @@ body <- dashboardBody(
                 cellWidths = c('50%', '50%'), 
                 numericInput(
                   'delayICUD_mean', label = withMathJax('\\( \\mu \\)'),
-                  value = 8, min = 0, max = 50, step = 0.01
+                  value = 8, min = 0, max = 50, step = 0.01, width = '100%'
                 ), 
                 numericInput(
                   'delayICUD_sd', label = withMathJax('\\( \\sigma \\)'),
-                  value = 4, min = 0, max = 10, step = 0.01
+                  value = 4, min = 0, max = 10, step = 0.01, width = '100%'
                 )
               ),
               
@@ -249,11 +267,11 @@ body <- dashboardBody(
                 cellWidths = c('50%', '50%'), 
                 numericInput(
                   'delayICUREC_mean', label = withMathJax('\\( \\mu \\)'),
-                  value = 22, min = 0, max = 50, step = 0.01
+                  value = 22, min = 0, max = 50, step = 0.01, width = '100%'
                 ), 
                 numericInput(
                   'delayICUREC_sd', label = withMathJax('\\( \\sigma \\)'),
-                  value = 2, min = 0, max = 10, step = 0.01
+                  value = 2, min = 0, max = 10, step = 0.01, width = '100%'
                 )
               ),
               
@@ -296,26 +314,27 @@ body <- dashboardBody(
           box(
             status = 'warning', width = NULL,
             title = 'Intervention Settings',
-            footer = 'Having estimated the model on data, here you can see the effect of different interventions.
-                      These can be in the past to answer \'what if\' questions, or in the future.',
+            HTML(
+              'After running the model, this panel allows you to see the effect of past and future interventions.
+              Interventions are formalized as a reduction in social contact taking place from a particular date onwards.'
+            ),
+            tags$hr(),
             
             numericInput(
               'nr_interventions_forecast',
               'Number of Interventions',
               min = 1, max = 100,
-              value = 1
+              value = 1, width = '100%'
             ),
             
             uiOutput('intervention'),
-            actionButton('intervene', 'Intervene'),
+            div(style = 'display: inline-block;',  actionButton('intervene', 'Intervene')),
+            div(style = 'display: inline-block;',  actionButton('reset', 'Reset Intervention')),
             checkboxInput(
               'show_samples',
               'Show Samples of Interventions (Otherwise only Mean Intervention)',
               value = FALSE
-            ),
-            br(),
-            br(),
-            actionButton('reset', 'Reset Intervention')
+            )
           )
         )
       )
@@ -325,7 +344,7 @@ body <- dashboardBody(
       tabName = 'about',
       fluidPage(
         box(
-          width = 1000,
+          width = NULL,
           HTML(
             "<h3 style = 'text-align: center;'>About</h3>
           <p style = 'font-size: 120%; text-align: center;'>

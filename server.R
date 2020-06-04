@@ -56,35 +56,29 @@ shinyServer(function(input, output, session) {
     if (!is.null(model$data)) {
       
       # Update the config data with 'single_run = TRUE'
-      # config_obj$data <- create_config(input, model$posterior_alphas, single_run = TRUE)
-      # write(config_obj$data, 'config.json')
-      # config$data <- fromJSON('config.json')
-      
+      # and the intervention parameters (alpha and days)
+      # save them in the config_int variable, then run the model
       
       # Estimate a single run of the model
       config <- model$config
-      config$single_run <- TRUE
+      config_int <- model$config
+      config_int$single_run <- TRUE
       
       alphas_inter <- paste0('alpha_intervention_', seq(input$nr_interventions_forecast))
       alphas_inter <- lapply(alphas_inter, function(alpha) list(1 - input[[alpha]], 0.10))
       alphas <- c(model$posterior_alphas, alphas_inter)
       
-      print(alphas)
-      config$alpha <- alphas
-      print(config)
+      startdate <- as.Date(config_int$startdate, tryFormats = '%m/%d/%y')
+      dayalphas_inter <- paste0('day_intervention_', seq(input$nr_interventions_forecast))
+      dayalphas_inter <- sapply(dayalphas_inter, function(day) input[[day]] - as.numeric(startdate))
       
-      res <- run_dashboard_wrapper(toJSON(config, auto_unbox = TRUE))
+      config_int$dayalpha <- c(config$dayalpha, dayalphas_inter)
+      config_int$alpha <- alphas
+      model$config_int <- config_int
       
-      # res <- list('alpha' = seq(1, 348))
-      # 
-      # for (i in seq(10)) {
-      #   d <- run_dashboard_wrapper(toJSON(config$data, auto_unbox = TRUE))
-      #   res[['alpha']] <- cbind(res[['alpha']], d[[1]][['alpha']][, 2])
-      # }
+      # write(prettify(toJSON(config_int)), 'config_updated.json')
       
-      # print(res[['alpha']])
-      # model$single_data <- res
-      
+      res <- run_dashboard_wrapper(toJSON(config_int, auto_unbox = TRUE))
       has_intervened$boolean <- TRUE
       model$single_data <- res[[1]]
     }
@@ -117,13 +111,17 @@ shinyServer(function(input, output, session) {
         alpha <- paste0('alpha_', i)
         
         output[[i]] <- tagList()
-        output[[i]] <- fluidRow(
-          column(6, dateInput(day, paste0('Intervention Date'), value = startdate + DAYALPHAS[i])),
-          column(6, numericInput(
+        output[[i]] <- splitLayout(
+            cellWidths = c('50%', '50%'),
+            dateInput(
+              day, paste0('Intervention Date'),
+              value = startdate + DAYALPHAS[i], min = '2020-03-02', width = '100%'
+            ),
+            numericInput(
               alpha, withMathJax(paste0('% Social Contact')),
-              value = 1 - mean(ALPHAS[[i]]), step = 0.01, min = 0, max = 1
-          ))
-        )
+              value = 1 - mean(ALPHAS[[i]]), step = 0.01, min = 0, max = 1, width = '100%'
+            )
+          )
       }
       
       return(output)
@@ -139,15 +137,17 @@ shinyServer(function(input, output, session) {
       day <- paste0('day_intervention_', i)
       alpha <- paste0('alpha_intervention_', i)
       
-      output[[i]] <- fluidRow(
-        column(6, dateInput(day, paste0('Intervention Date'))),
-        column(6, numericInput(
-            alpha, withMathJax(paste0('% Social Contact')),
-            value = 0.30, step = 0.01, min = 0, max = 1
-          )
+      output[[i]] <- splitLayout(
+        cellWidths = c('50%', '50%'),
+        dateInput(
+          day, paste0('Intervention Date'),
+          min = '2020-03-02', width = '100%'
+        ),
+        numericInput(
+          alpha, withMathJax(paste0('% Social Contact')),
+          value = 0.30, step = 0.01, min = 0, max = 1, width = '100%'
         )
       )
-      
     }
     output
   })

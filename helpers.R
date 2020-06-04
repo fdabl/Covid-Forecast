@@ -132,15 +132,16 @@ plot_predictions <- function(config, model, type, cols, ylab, title, show_interv
           values = c(
             'Intervention' = '#88d969', 'Mean' = 'black', 'Median' = 'gray76'
           ),
-          labels = c('Intervention', 'Mean', 'Median')
+          labels = c('Intervention (Mean + Samples)', 'Mean', 'Median')
         )
+      
     } else {
       p <- p + 
         geom_line(data = preddat, aes(x = Date, y = Mean, color = 'Intervention')) +
         scale_colour_manual(
           name = '',
           values = c('Intervention' = '#88d969', 'Mean' = 'black', 'Median' = 'gray76'),
-          labels = c('Intervention', 'Mean', 'Median')
+          labels = c('Intervention (Mean)', 'Mean', 'Median')
         )
     }
   }
@@ -169,14 +170,14 @@ plot_interventions <- function(config, model, cols, ylab, title, show_interventi
   p <- ggplot(dat, aes(x = Date, y = p50)) +
     geom_ribbon(aes(ymin = p5, ymax = p95, fill = '90% CI'), alpha = 0.50) +
     geom_ribbon(aes(ymin = p30, ymax = p70, fill = '40% CI'), alpha = 0.75) +
-    # geom_line(aes(color = 'Mean'), size = 0.5) +
+    geom_line(aes(color = 'Mean'), size = 0.5) +
     geom_line(aes(y = p50, color = 'Median'), size = 0.5) +
     ggtitle(title) +
     ylab(ylab) +
     scale_colour_manual(
       name = '',
       values = c('Mean' = 'black', 'Median' = 'gray76'),
-      labels = c('Mean','Median')
+      labels = c('Mean', 'Median')
     ) +
     scale_fill_manual(
       name = '',
@@ -198,10 +199,10 @@ plot_interventions <- function(config, model, cols, ylab, title, show_interventi
 
     cols <- brewer.pal(3, 'Set1')
     p <- p +
-      geom_line(data = preddat, aes(x = Date, y = Mean, color = 'Counterfactual')) +
+      geom_line(data = preddat, aes(x = Date, y = Mean, color = 'Intervention')) +
       scale_colour_manual(
         name = '',
-        values = c('Counterfactual' = cols[1], 'Mean' = 'black', 'Median' = 'gray76'),
+        values = c('Intervention' = '#88d969', 'Mean' = 'black', 'Median' = 'gray76'),
         labels = c('Intervention (Mean)', 'Mean', 'Median')
       )
   }
