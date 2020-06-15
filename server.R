@@ -6,9 +6,6 @@ source('helpers.R')
 
 
 shinyServer(function(input, output, session) {
-  req <- httr::GET("http://worldtimeapi.org/api/ip")
-  time <- httr::content(req)$datetime
-  
   model <- reactiveValues(data = NULL)
   config <- reactiveValues(data = NULL)
   config_obj <- reactiveValues(data = NULL)
@@ -49,7 +46,6 @@ shinyServer(function(input, output, session) {
   observeEvent(input$run3, { run_model() })
   observeEvent(input$reset, { has_intervened$boolean <- FALSE })
   
-  
   observeEvent(input$intervene, {
     
     # Need to have run the model before intervention is possible!
@@ -76,7 +72,7 @@ shinyServer(function(input, output, session) {
       config_int$alpha <- alphas
       model$config_int <- config_int
       
-      # write(prettify(toJSON(config_int)), 'config_updated.json')
+      write(prettify(toJSON(config_int)), 'config_updated.json')
       
       res <- run_dashboard_wrapper(toJSON(config_int, auto_unbox = TRUE))
       has_intervened$boolean <- TRUE
@@ -84,6 +80,8 @@ shinyServer(function(input, output, session) {
     }
   })
   
+  
+  run_example_intervention <- reactiveValues(data = FALSE)
   
   observeEvent(input$days_intervention, {
     # TODO: Input handling
@@ -155,13 +153,13 @@ shinyServer(function(input, output, session) {
   output$infectedPlot <- renderPlot({
     cols <- c('#FFE4E1', '#F08080')
     ylab <- 'Confirmed Cases'
-    title <- 'Cumulative Confirmed Cases in The Netherlands'
+    title <- 'Cumulative Confirmed Cases'
     
     if (!is.null(model$data)) {
       p <- plot_predictions(
         config$data, model, 'infected', cols, ylab,
-        title, has_intervened$boolean, input$show_samples
-      )
+        title, has_intervened$boolean
+      ) + scale_y_continuous(n.breaks = 5)
       reset$data <- FALSE
       p
     }
@@ -170,13 +168,13 @@ shinyServer(function(input, output, session) {
   output$hospitalizedPlot <- renderPlot({
     cols <- c('#B0E0E6', '#4682B4')
     ylab <- 'Hospitalized Cases'
-    title <- 'Cumulative Hospitalized Cases in The Netherlands'
+    title <- 'Cumulative Hospitalized Cases'
     
     if (!is.null(model$data)) {
       p <- plot_predictions(
         config$data, model, 'hospitalizedcum', cols, ylab,
-        title, has_intervened$boolean, input$show_samples
-      )
+        title, has_intervened$boolean
+      ) + scale_y_continuous(n.breaks = 5)
       reset$data <- FALSE
       p
     }
@@ -185,12 +183,12 @@ shinyServer(function(input, output, session) {
   output$ICPlot <- renderPlot({
     cols <- c('#FFDAB9', '#F4A460')
     ylab <- 'Intensive Care Cases'
-    title <- 'Intensive Care Cases in The Netherlands'
+    title <- 'Intensive Care Cases'
     
     if (!is.null(model$data)) {
       p <- plot_predictions(
         config$data, model, 'ICU', cols, ylab,
-        title, has_intervened$boolean, input$show_samples
+        title, has_intervened$boolean
       )
       reset$data <- FALSE
       p
@@ -200,12 +198,12 @@ shinyServer(function(input, output, session) {
   output$deadPlot <- renderPlot({
     cols <- c('#C0C0C0', '#808080')
     ylab <- 'Mortalities'
-    title <- 'Cumulative Mortalities in The Netherlands'
+    title <- 'Cumulative Mortalities'
     
     if (!is.null(model$data)) {
       p <- plot_predictions(
         config$data, model, 'dead', cols, ylab,
-        title, has_intervened$boolean, input$show_samples
+        title, has_intervened$boolean
       )
       reset$data <- FALSE
       p
@@ -214,31 +212,7 @@ shinyServer(function(input, output, session) {
   
   output$allPlot <- renderPlot({
     if (!is.null(model$data)) {
-      p1 <- plot_predictions(
-        config$data, model, 'infected', c('#FFE4E1', '#F08080'),
-        'Confirmed Cases', 'Cumulative Confirmed Cases in The Netherlands',
-        has_intervened$boolean, input$show_samples
-      )
-      
-      p2 <- plot_predictions(
-        config$data, model, 'hospitalizedcum', c('#B0E0E6', '#4682B4'),
-        'Hospitalized Cases', 'Cumulative Hospitalized Cases in The Netherlands',
-        has_intervened$boolean, input$show_samples
-      )
-      
-      p3 <- plot_predictions(
-        config$data, model, 'ICU', c('#FFDAB9', '#F4A460'),
-        'Intensive Care Cases', 'Intensive Care Cases in The Netherlands',
-        has_intervened$boolean, input$show_samples
-      )
-      
-      p4 <- plot_predictions(
-        config$data, model, 'dead', c('#C0C0C0', '#808080'),
-        'Mortalities', 'Cumulative Mortalities in The Netherlands',
-        has_intervened$boolean, input$show_samples
-      )
-      
-      gridExtra::grid.arrange(p1, p2, p3, p4, nrow = 2, ncol = 2)
+      plot_all(config$data, model, has_intervened$boolean)
     }
   })
   
@@ -260,46 +234,194 @@ shinyServer(function(input, output, session) {
   })
   
   
-  output$introduction <- renderText({
-    '
-    <h3>Welcome!</h3>
-    
-    <p>
-    Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium,
-    totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.
-    Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos
-    qui ratione voluptatem sequi nesciunt.
-    </p>
-    
-    <p>
-    This Web app allows you to interactively explore the model described in 
-    van Wees, Osinga, van der Kuip, Tanck, Pluymaekers, Leeuwenburgh, Bijsterveldt, Zindler, and van Furth.
-    Forecasting hospitalization and ICU rates of the COVID-19 outbreak: an efficient SEIR model.
-    [<a href=\'https://www.who.int/bulletin/online_first/20-256743.pdf\'>Paper</a>]
-    [<a href=\'https://github.com/TNO/Covid-SEIR\'>Code</a>]
-    </p>
-    '
+  output$explanation_plot_predictions <- renderPlot({
+    run_model()
+    if (!is.null(model$data)) {
+      plot_all(config$data, model, has_intervened$boolean)
+      run_example_intervention$data <- TRUE
+    }
   })
   
-  output$structure <- renderText({
-    text1 <- '
-    <h3>Model Overview</h3>
+  
+  output$explanation_plot_intervention <- renderPlot({
+    if (!is.null(model$data) && run_example_intervention$data) {
+      
+      # Estimate a single run of the model
+      config <- model$config
+      config_int <- model$config
+      config_int$single_run <- TRUE
+      
+      alphas_inter <- list(list(1 - 0.28, 0.10))
+      alphas <- c(model$posterior_alphas, alphas_inter)
+      
+      # Make an intervention today
+      startdate <- as.Date(config_int$startdate, tryFormats = '%m/%d/%y')
+      intdate <- as.Date('2020-04-06')
+      dayalphas_inter <- as.numeric(intdate) - as.numeric(startdate)
+      
+      config_int$dayalpha <- c(config$dayalpha, dayalphas_inter)
+      config_int$alpha <- alphas
+      model$config_int <- config_int
+      
+      res <- run_dashboard_wrapper(toJSON(config_int, auto_unbox = TRUE))
+      has_intervened$boolean <- FALSE
+      model$single_data <- res[[1]]
+        
+      plot_all(config_int, model, TRUE)
+    }
+  })
+  
+  
+  # Adaptive resizing of the model explanation figure
+  output$model_explanation <- renderImage({
+    width  <- session$clientData$output_model_explanation_width
+    height <- session$clientData$output_model_explanation_height
+    pixelratio <- session$clientData$pixelratio
+    
+    list(
+      src = 'www/SEIR.png',
+      contentType = 'img/png',
+      width = width,
+      height = height * 1.1,
+      alt = 'Model Explanation'
+    )
+    
+  }, deleteFile = FALSE)
+  
+  
+  output$model_overview <- renderText({
+    res <- "
+    <p>
+    Here, we briefly give an overview of the model. For details, please refer to
+    Van Wees et al.
+    (<a href='https://www.who.int/bulletin/online_first/20-256743.pdf' target='_blank'>2020a</a>,
+    <a href='https://www.medrxiv.org/content/10.1101/2020.05.16.20102947v1'>2020b</a>).
+    </p>
     
     <p>
-    Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium,
-    totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.
+    The model follows an SEIR structure which assumes that the population is comprised of
+    susceptible, exposed (i.e., latent infection), infectious, and removed subpopulations. Importantly, the model
+    assumes that reinfections do not occur, that is, that immunity lasts for life, or at least until the end of the simulation.
+    In addition to the basic SEIR structure, the model also incorporates a realistic flow process for hospitalization and intensive care.
+    This allows one to split the removed subpopulation into those that have recovered and those that have deceased.
+    The Figure on the right gives an overview of the model.
     </p>
-    '
     
-    text2 <- '<p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam,
-    eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem
-    quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.
-    Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora
-    incidunt ut labore et dolore magnam aliquam quaerat voluptatem. Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis
-    suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur? Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse
-    quam nihil molestiae consequatur, vel illum qui dolorem eum fugiat quo voluptas nulla pariatur?</p>'
+    <p>
+    The fraction of the population that is susceptible to the disease is given by m. R<sub>0</sub> is the basic reproductive number,
+    &sigma; gives the rate with which exposed people become infectious, and &gamma; is the rate with which infected people self-quarantine.
+    Susceptible people become exposed with a rate given by (1 - &#945;(t))R<sub>0</sub>&gamma;.
+    </p>
     
-    res <- paste0(text1, '<p style="text-align: center;"><img src="SEIR.png" width=600 height=300></p>', text2)
-    paste(res, '<p>', time, '</p>')
+    <p>
+    &#945;(t) is a key parameter, which encodes the strength of social distancing: &#945;(t) = 0 when no measures are in place, and
+    &#945;(t) = 1 when social distancing would prevent any transmission. Under <i>Interactive Exploration</i>, you can tweak these parameters, make model predictions, and change &#945;(t) to
+    assess the effect that interventions could have. An overview of all parameters and sensible default values are given in the Table below.
+    </p>
+    
+    <p>
+    As shown in the Figure, the fraction of patients who go to the hospital, which takes about d<sub>hos</sub> days,
+    is given by h, while the fraction of patients with mild symptoms, which recover in about d<sub>rec</sub> days, is given by 1 - h. 
+    </p>
+    
+    <p>
+    The fraction of hospitalized patients who die immediately without going to the ICU is given by f<sub>hos</sub>, while the
+    fraction who goes to ICU is given by i(t). Some hospitalized patients recover, and this process of recover takes about d<sub>hosrec</sub> days.
+    It takes about d<sub>icurec</sub> days for patients to recover from intensive care treatment, if the recover at all.
+    A fraction of ICU patients, given by f<sub>icu</sub>, unfortunately die, and this process takes about d<sub>icud</sub> days.
+    </p>
+    
+    <p>
+    Each of the parameters can be marked by a priori constants or distributions, which can be adjusted in the data calibration.
+    The Table below lists the adopted parameter values including the prior and posterior parameters used for the case study of the Netherlands.
+    </p>
+    
+    <p>
+    The model is strongly data-driven and calibrates prior estimates for a number of model parameters,
+    including the reproduction number, strength of social distancing, and some of the treatment times for hospitalization and
+    ICU from the observed data (see Table below). For data assimilation of all parameters in conjunction with calibration of &#945;(t), we use the ensemble
+    smoother with multiple iterations which is a computationally efficient method for ensembles of non-linear forward models.
+    The data assimilation is performed by matching modeled hospitalization and intensive care unit usage to reported usage.
+    </p>
+    
+    <br><h3>Model Parameters</h3><br>
+    "
+    
+    res
   })
+  
+  
+  output$model_parameters <- renderTable({
+    params <- c(
+      '$$N$$', '$$m$$', '$$R_0$$', '$$\\sigma$$', '$$\\gamma$$',
+      '$$d_{\\text{hos}}$$', '$$d_{\\text{hosd}}$$', '$$d_{\\text{hosrec}}$$',
+      '$$d_{\\text{icud}}$$', '$$d_{\\text{icurec}}$$', '$$d_{\\text{rec}}$$',
+      '$$f_{\\text{hos}}$$', '$$f_{\\text{icu}}$$', '$$h$$', '$$i(t)$$',
+      '$$\\text{CFR}_{\\text{hos}} = f_{\\text{hos}} + i(t) f_{\\text{icu}}$$'
+    )
+    
+    values_mean <- c(
+      '$$80000$$', '$$0.90$$', '$$3.20$$', '$$0.20$$', '$$0.50$$', '$$7$$',
+      '$$3$$', '$$9$$', '$$11$$', '$$24$$', '$$12$$', '$$-$$', '$$0.30$$',
+      '$$0.015$$', '$$0.18 - 1$$', '$$0.30$$'
+    )
+    
+    values_std <- c(
+      '$$40000$$', '$$-$$', '$$0.50$$', '$$-$$', '$$-$$', '$$-$$',
+      '$$1$$', '$$-$$', '$$-$$', '$$1$$', '$$-$$', '$$-$$', '$$0.02$$',
+      '$$0.005$$', '$$-$$', '$$-$$'
+    )
+    
+    G <- c(
+      '$$-$$', '$$-$$', '$$-$$', '$$-$$', '$$-$$', '$$2$$',
+      '$$2$$', '$$4$$', '$$8$$', '$$19$$', '$$-$$', '$$-$$', '$$-$$',
+      '$$-$$', '$$-$$', '$$-$$'
+    )
+    
+    unit <- c(
+      '$$-$$', '$$-$$', '$$\\text{day}^{-1}$$', '$$\\text{day}^{-1}$$', '$$\\text{day}^{-1}$$',
+      '$$\\text{days}$$', '$$\\text{days}$$', '$$\\text{days}$$', '$$\\text{days}$$', '$$\\text{days}$$',
+      '$$\\text{days}$$', '$$-$$', '$$-$$', '$$-$$', '$$-$$', '$$-$$'
+    )
+    
+    description <- c(
+      '$$\\text{1/N is the starting fraction of exposed in SEIR model}$$',
+      '$$\\text{Fraction of total population susceptible to COVID-19}$$',
+      '$$\\text{Initial reproduction number}$$',
+      '$$\\text{Incubation time of 5 days}$$',
+      '$$\\text{Removal rate of infected people in self quarantine}$$',
+      
+      '$$\\text{Days of illness before hospitalization}$$',
+      '$$\\text{Days of hospital treatment for mortalities}$$',
+      '$$\\text{Days of hospital treatment for recovery}$$',
+      '$$\\text{Days of ICU treatment for mortalities (estimated from NICE data)}$$',
+      '$$\\text{Days of ICU treatment for recoverable case (estimated from NICE data)}$$',
+      '$$\\text{Days required for recovery of mild cases}$$',
+      
+      '$$f_{\\text{hos}} = \\text{CFR}_{\\text{hos}} - i(t) f_{\\text{icu}}$$',
+      '$$\\text{CFR of ICU patients (estimated from data)}$$',
+      '$$\\text{Fraction of hospitalized cases (estimated from under registration and Sanquin study)}$$',
+      '$$\\text{Fraction of hospitalized patients in need for IC treatment (fitted on reported rates from hospitalization and ICU with Gaussian smoothing)}$$',
+      '$$\\text{Aggregated CFR of hospitalized and ICU cases (estimated from reported mortality rates by NICE)}$$'
+    )
+    
+    df <- data.frame(
+      Parameter = params,
+      E_mean = values_mean,
+      E_std = values_std,
+      G = G,
+      Unit = unit,
+      Description = description
+    )
+    
+    colnames(df) <- c(
+      '$$\\text{Parameter}$$', '$$\\text{E}_{\\text{mean}}$$',
+      '$$\\text{E}_{\\text{std}}$$', '$$\\text{G}_{\\text{std}}$$',
+      '$$\\text{Unit}$$', '$$\\text{Description}$$'
+    )
+    
+    df
+    
+  }, spacing = 'xs', align = 'cccccl', rownames = FALSE)
+  
 })

@@ -2,6 +2,9 @@ library('jsonlite')
 library('reticulate')
 library('RColorBrewer')
 
+# https://github.com/rstudio/rsconnect/issues/359
+# https://github.com/ranikay/shiny-reticulate-app
+
 # Interventions for The Netherlands
 ALPHAS <- list(
   c(0.1,0.5), c(0.1,0.5), c(0.3,0.9), c(0.3,0.9), c(0.3,0.9),
@@ -11,24 +14,31 @@ ALPHAS <- list(
 
 DAYALPHAS <- c(8, 12, 15, 18, 19, 20, 21, 22, 23, 24, 26, 28, 30, 32, 34, 36)
 
+LINESIZE <- 0.75
+INTERVENTION_COLOR <- '#ADADAD'
 
-# randn_py <- runif
+
 # use_condaenv("r-reticulate")
-# use_python(Sys.which("python3"))
-use_python('/anaconda3/bin/python3')
-
+# use_python('/usr/bin/python3')
 # py_install(c('numpy', 'matplotlib'))
+# use_python('/anaconda3/bin/python3')
+
 # Setup Python Environment
+# system('apt-get install python3-tk')
 # virtualenv_create(envname = 'python_env', python = 'python3')
+# virtualenv_remove(envname = "python_env", packages = "pip")
+# print(py_discover_config())
+# virtualenv_install('python_env', packages = c('numpy', 'h5py', 'scipy', 'tqdm', 'requests', 'lxml', 'selenium'))#, 'matplotlib==1.5.3'))
+# virtualenv_install('python_env', packages = c('pip==19.0.3', 'numpy', 'matplotlib'))
 # virtualenv_install('python_env', packages = c('numpy', 'matplotlib', 'requests'), ignore_installed = TRUE)
 # virtualenv_install('python_env', packages = c('numpy', 'matplotlib', 'pip==19.0'), ignore_installed = TRUE)
-# use_virtualenv('python_env', required = TRUE)
+use_virtualenv('python_env', required = TRUE)
 
 # source_python('source.py')
 source_python('bin/dashboard_wrapper.py')
 # source_python('Covid-SEIR/bin/corona_esmda.py')
 # source_python('Covid-SEIR/src/api_nl_data.py')
-
+# 
 # config <- fromJSON('Covid-SEIR/configs/netherlands_dashboard.json')
 # config <- fromJSON('config.json')
 # res <- run_dashboard_wrapper(toJSON(config, auto_unbox = TRUE))
@@ -48,20 +58,11 @@ source_python('bin/dashboard_wrapper.py')
 # https://community.rstudio.com/t/running-code-in-shiny-periodically/27624
 
 
-merge_runs <- function(model_data, single_data) {
-  names <- c('infected', 'hospitalized', 'ICU', 'dead')
+plot_predictions <- function(
+  config, model, type, cols, ylab, title,
+  show_intervention = FALSE
+) {
   
-  res <- list()
-  
-  for (i in seq(length(names))) {
-    name <- names[i]
-    res[[name]] <- cbind(model_data[[name]], single_data[[name]][, 2])
-  }
-  
-  res
-}
-
-plot_predictions <- function(config, model, type, cols, ylab, title, show_intervention = FALSE, show_samples = FALSE) {
   res <- model$data
   dat <- res[[type]]
   colnames(dat) <- c('Time', 'Mean', 'p5', 'p30', 'p50', 'p70', 'p95', 'Observed')
@@ -74,8 +75,8 @@ plot_predictions <- function(config, model, type, cols, ylab, title, show_interv
     geom_ribbon(aes(ymin = p5, ymax = p95, fill = '90% CI'), alpha = 0.50) +
     geom_ribbon(aes(ymin = p30, ymax = p70, fill = '40% CI'), alpha = 0.75) +
     geom_point(aes(y = Observed)) +
-    geom_line(aes(color = 'Mean'), size = 0.5) +
-    geom_line(aes(y = p50, color = 'Median'), size = 0.5) +
+    geom_line(aes(color = 'Mean'), size = LINESIZE) +
+    geom_line(aes(y = p50, color = 'Median'), size = LINESIZE) +
     ggtitle(title) +
     ylab(ylab) +
     scale_colour_manual(
@@ -103,51 +104,24 @@ plot_predictions <- function(config, model, type, cols, ylab, title, show_interv
       type <- 'infected_cum'
     }
     
-    dat <- model$single_data[[type]]
-    # n <- nrow(dat)
-    # preddat <- data.frame(
-    #   'Time' = rep(dat[, 1], 5),
-    #   # 'Label' = c(rep('Mean', n), rep('Sample1', n), rep('Sample2', n), rep('Sample3', n), rep('Sample4', n)),
-    #   'Label' = c(rep('Mean', n), rep('Sample1', n * 4)),
-    #   'Value' = c(dat[, 2], dat[, 3], dat[, 4], dat[, 5], dat[, 6])
-    # )
+    preddat <- model$single_data[[type]]
+    dat$Mean <- preddat[, 2]
     
-    preddat <- data.frame(
-      'Time' = dat[, 1], 'Mean' = dat[, 2],
-      'Sample1' = dat[, 3], 'Sample2' = dat[, 4],
-      'Sample3' = dat[, 5], 'Sample4' = dat[, 6]
-    )
-    preddat$Date <- start + preddat$Time - 1
-    cols <- brewer.pal(3, 'Set1')
-    
-    if (show_samples) {
-      p <- p + 
-        geom_line(data = preddat, aes(x = Date, y = Mean, color = 'Intervention')) +
-        geom_line(data = preddat, aes(x = Date, y = Sample1, color = 'Intervention')) +
-        geom_line(data = preddat, aes(x = Date, y = Sample2, color = 'Intervention')) +
-        geom_line(data = preddat, aes(x = Date, y = Sample3, color = 'Intervention')) +
-        geom_line(data = preddat, aes(x = Date, y = Sample4, color = 'Intervention')) +
-        scale_colour_manual(
-          name = '',
-          values = c(
-            'Intervention' = '#88d969', 'Mean' = 'black', 'Median' = 'gray76'
-          ),
-          labels = c('Intervention (Mean + Samples)', 'Mean', 'Median')
-        )
-      
-    } else {
-      p <- p + 
-        geom_line(data = preddat, aes(x = Date, y = Mean, color = 'Intervention')) +
-        scale_colour_manual(
-          name = '',
-          values = c('Intervention' = '#88d969', 'Mean' = 'black', 'Median' = 'gray76'),
-          labels = c('Intervention (Mean)', 'Mean', 'Median')
-        )
-    }
+    p <- p + 
+      geom_line(data = dat, aes(x = Date, y = Mean, color = 'Intervention'), size = LINESIZE) +
+      geom_ribbon(
+        data = dat,
+        aes(ymin = Mean * (1 - (p50 - p5) / p50), ymax = Mean * (1 + (p95 - p50) / p50)),
+        alpha = 0.50, fill = INTERVENTION_COLOR
+      ) +
+      scale_colour_manual(
+        name = '',
+        values = c('Intervention' = INTERVENTION_COLOR, 'Mean' = 'black', 'Median' = 'gray76'),
+        labels = c('Intervention', 'Mean', 'Median')
+      )
   }
   
-  p +
-    guides(
+  p + guides(
       color = guide_legend(order = 1),
       fill = guide_legend(order = 2)
     )
@@ -170,8 +144,8 @@ plot_interventions <- function(config, model, cols, ylab, title, show_interventi
   p <- ggplot(dat, aes(x = Date, y = p50)) +
     geom_ribbon(aes(ymin = p5, ymax = p95, fill = '90% CI'), alpha = 0.50) +
     geom_ribbon(aes(ymin = p30, ymax = p70, fill = '40% CI'), alpha = 0.75) +
-    geom_line(aes(color = 'Mean'), size = 0.5) +
-    geom_line(aes(y = p50, color = 'Median'), size = 0.5) +
+    geom_line(aes(color = 'Mean'), size = LINESIZE) +
+    geom_line(aes(y = p50, color = 'Median'), size = LINESIZE) +
     ggtitle(title) +
     ylab(ylab) +
     scale_colour_manual(
@@ -194,22 +168,54 @@ plot_interventions <- function(config, model, cols, ylab, title, show_interventi
 
   if (show_intervention) {
     preddat <- model$single_data[['alpha']]
-    preddat <- data.frame('Time' = preddat[, 1], 'Mean' = preddat[, 2])
-    preddat$Date <- start + preddat$Time - 1
+    # preddat <- data.frame('Time' = preddat[, 1], 'Mean' = preddat[, 2])
+    # preddat$Date <- start + preddat$Time - 1
+    dat$Mean <- preddat[, 2]
 
-    cols <- brewer.pal(3, 'Set1')
     p <- p +
-      geom_line(data = preddat, aes(x = Date, y = Mean, color = 'Intervention')) +
+      geom_line(data = dat, aes(x = Date, y = Mean, color = 'Intervention')) +
+      geom_ribbon(
+        data = dat,
+        aes(ymin = Mean * (1 - (p50 - p5) / p50), ymax = Mean * (1 + (p95 - p50) / p50)),
+        alpha = 0.50, fill = INTERVENTION_COLOR, size = LINESIZE
+      ) +
       scale_colour_manual(
         name = '',
-        values = c('Intervention' = '#88d969', 'Mean' = 'black', 'Median' = 'gray76'),
-        labels = c('Intervention (Mean)', 'Mean', 'Median')
+        values = c('Intervention' = INTERVENTION_COLOR, 'Mean' = 'black', 'Median' = 'gray76'),
+        labels = c('Intervention', 'Mean', 'Median')
       )
   }
   
-  p #+ scale_x_date(limits = c(startdate, startdate + 4 * 30), breaks = scales::pretty_breaks(n = 8))
+  p + guides(
+    colour = guide_legend(order = 1),
+    fill = guide_legend(order = 2)
+  )
 }
 
+
+plot_all <- function(data, model, has_intervened) {
+  p1 <- plot_predictions(
+    data, model, 'infected', c('#FFE4E1', '#F08080'),
+    'Confirmed Cases', 'Cumulative Confirmed Cases', has_intervened
+  ) + scale_y_continuous(n.breaks = 5)
+  
+  p2 <- plot_predictions(
+    data, model, 'hospitalizedcum', c('#B0E0E6', '#4682B4'),
+    'Hospitalized Cases', 'Cumulative Hospitalized Cases', has_intervened
+  ) + scale_y_continuous(n.breaks = 5)
+  
+  p3 <- plot_predictions(
+    data, model, 'ICU', c('#FFDAB9', '#F4A460'),
+    'Intensive Care Cases', 'Intensive Care Cases', has_intervened
+  ) + scale_y_continuous(n.breaks = 5)
+  
+  p4 <- plot_predictions(
+    data, model, 'dead', c('#C0C0C0', '#808080'),
+    'Mortalities', 'Cumulative Mortalities', has_intervened
+  ) + scale_y_continuous(n.breaks = 5)
+  
+  gridExtra::grid.arrange(p1, p2, p3, p4, nrow = 2, ncol = 2)
+}
 
 
 create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
@@ -242,7 +248,7 @@ create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
     
     ALPHAS <- posterior_alphas
     # ALPHAS <- posterior_alphas
-    print(ALPHAS)
+    # print(ALPHAS)
     # print(DAYALPHAS)
   }
   
@@ -341,7 +347,7 @@ create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
     
     'ICufrac' = input$ICUfrac,
     
-    'calibration_mode' = c('hospitalizedcum', 'ICU'),
+    'calibration_mode' = c('dead', 'ICU'),
     'observation_error' = c(100.0, 50.0),
     'hist_time_steps' = c(30, 35, 40, 60),
     'p_values' =  c(0.05, 0.3, 0.5, 0.7, 0.95),
@@ -356,7 +362,8 @@ create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
       'stddev' = 0.1
     ),
 
-    'icufracfile' =  '../output/netherlands_dashboard_icufrac.txt',
+    'icufracfile' =  'output/netherlands_dashboard_icufrac.txt',
+    'icufracfile' =  '../bin/output/netherlands_dashboard_icufrac.txt',
     'icdatafile' = 'res/icdata_main.txt',
     'single_run' = single_run,
     'output_base_filename' = 'netherlands_dashboard',
