@@ -71,7 +71,7 @@ body <- dashboardBody(
             <p>
             The Figure on the right shows the raw data (black dots) and the model fit for cumulative confirmed cases of COVID-19 (top left),
             cumulative hospitalized cases (top right), intensive care cases (bottom left), and cumulative mortalities (bottom right). The black and
-            gray solid lines show the posterior mean and posterior median of the model estimate, while the transparent ribbons indicate the 40% and
+            gray solid lines show the posterior mean and posterior median of the model estimate, while the shaded ribbons indicate the 40% and
             90% credible intervals, respectively.
             </p>
             
@@ -190,13 +190,13 @@ body <- dashboardBody(
               
               numericInput(
                 'delayREC',
-                'Average Recovery Time of Non-Hospitalised Patients (Days)',
+                HTML('Average Recovery Time of Non-Hospitalised Patients (Days) [d<sub>rec</sub>]'),
                 value = 12, width = '100%'
               ),
               
               sliderInput(
                 'hosfrac',
-                'Average % of Infected People Needing Hospitalization:',
+                HTML('Average % of Infected People Needing Hospitalization [h]'),
                 value = 0.05, min = 0.01, max = 0.30, step = 0.01, width = '100%'
               ),
               
@@ -264,7 +264,7 @@ body <- dashboardBody(
               
               tags$hr(),
               
-              tags$b('Prior on % Hospitalized People Dying'),
+              HTML('<b>Prior on % Hospitalized People Dying</b> [f<sub>hos</sub>]'),
               splitLayout(
                 cellWidths = c('50%', '50%'), 
                 numericInput(
@@ -277,7 +277,7 @@ body <- dashboardBody(
                 )
               ),
               
-              tags$b('Prior on % IC Patients Dying'),
+              HTML('<b>Prior on % IC Patients Dying</b> [f<sub>icu</sub>]'),
               splitLayout(
                 cellWidths = c('50%', '50%'), 
                 numericInput(
@@ -286,16 +286,16 @@ body <- dashboardBody(
                 ), 
                 numericInput(
                   'icudfrac_sd', label = withMathJax('\\( \\sigma \\)'),
-                  value = 0.20, min = 0, max = 2, step = 0.01, width = '100%'
+                  value = 0.020, min = 0, max = 2, step = 0.01, width = '100%'
                 )
               ),
               
-              tags$b('Prior on Delay Between Hospitalisation and Recovery'),
+              HTML('<b>Prior on Days Between Hospitalisation and Recovery</b> [d<sub>hos</sub>]'),
               splitLayout(
                 cellWidths = c('50%', '50%'), 
                 numericInput(
                   'delayHOS_mean', label = withMathJax('\\( \\mu \\)'),
-                  value = 9, min = 0, max = 50, step = 0.01, width = '100%'
+                  value = 7, min = 0, max = 50, step = 0.01, width = '100%'
                 ), 
                 numericInput(
                   'delayHOS_sd', label = withMathJax('\\( \\sigma \\)'),
@@ -303,12 +303,12 @@ body <- dashboardBody(
                 )
               ),
               
-              tags$b('Prior on Hospitalisation Recovery (no IC)'),
+              HTML('<b>Prior on Days of Hospital Treatment to Recovery (no IC)</b> [d<sub>hosrec</sub>]'),
               splitLayout(
                 cellWidths = c('50%', '50%'), 
                 numericInput(
                   'delayHOSREC_mean', label = withMathJax('\\( \\mu \\)'),
-                  value = 12, min = 0, max = 50, step = 0.01, width = '100%'
+                  value = 9, min = 0, max = 50, step = 0.01, width = '100%'
                 ), 
                 numericInput(
                   'delayHOSREC_sd', label = withMathJax('\\( \\sigma \\)'),
@@ -316,7 +316,7 @@ body <- dashboardBody(
                 )
               ),
               
-              tags$b('Prior on Death of Hospitalised (no IC)'),
+              HTML('<b>Prior on Days of Hospital Treatment for Mortalities (no IC)</b> [d<sub>hosd</sub>]'),
               splitLayout(
                 cellWidths = c('50%', '50%'), 
                 numericInput(
@@ -325,11 +325,11 @@ body <- dashboardBody(
                 ), 
                 numericInput(
                   'delayHOSD_sd', label = withMathJax('\\( \\sigma \\)'),
-                  value = 2, min = 0, max = 10, step = 0.01, width = '100%'
+                  value = 1, min = 0, max = 10, step = 0.01, width = '100%'
                 )
               ),
               
-              tags$b('Prior on Hospitalised to IC'),
+              tags$b('Prior on Days of Hospitalization to IC'),
               splitLayout(
                 cellWidths = c('50%', '50%'), 
                 numericInput(
@@ -342,29 +342,29 @@ body <- dashboardBody(
                 )
               ),
               
-              tags$b('Prior on Time for IC Patients to Die'),
+              HTML('<b>Prior on Days for IC Patients to Die</b> [d<sub>icud</sub>]'),
               splitLayout(
                 cellWidths = c('50%', '50%'), 
                 numericInput(
                   'delayICUD_mean', label = withMathJax('\\( \\mu \\)'),
-                  value = 8, min = 0, max = 50, step = 0.01, width = '100%'
+                  value = 11, min = 0, max = 50, step = 0.01, width = '100%'
                 ), 
                 numericInput(
                   'delayICUD_sd', label = withMathJax('\\( \\sigma \\)'),
-                  value = 4, min = 0, max = 10, step = 0.01, width = '100%'
+                  value = 8, min = 0, max = 10, step = 0.01, width = '100%'
                 )
               ),
               
-              tags$b('Prior on Time for IC Patients to Recover'),
+              HTML('<b>Prior on Days for IC Patients to Recover</b> [d<sub>icurec</sub>]'),
               splitLayout(
                 cellWidths = c('50%', '50%'), 
                 numericInput(
                   'delayICUREC_mean', label = withMathJax('\\( \\mu \\)'),
-                  value = 22, min = 0, max = 50, step = 0.01, width = '100%'
+                  value = 24, min = 0, max = 50, step = 0.01, width = '100%'
                 ), 
                 numericInput(
                   'delayICUREC_sd', label = withMathJax('\\( \\sigma \\)'),
-                  value = 2, min = 0, max = 10, step = 0.01, width = '100%'
+                  value = 1, min = 0, max = 10, step = 0.01, width = '100%'
                 )
               ),
               

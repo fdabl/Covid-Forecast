@@ -282,7 +282,7 @@ shinyServer(function(input, output, session) {
       src = 'www/SEIR.png',
       contentType = 'img/png',
       width = width,
-      height = height * 1.1,
+      height = height * 1.2,
       alt = 'Model Explanation'
     )
     
@@ -345,6 +345,12 @@ shinyServer(function(input, output, session) {
     </p>
     
     <br><h3>Model Parameters</h3><br>
+    
+    <p>
+    The Table below gives an overview of all parameters, which are given a Gaussian prior with mean &mu; and standard deviation &sigma;.
+    If they do not have an entry for &sigma;, they are assumed to be constant. Parameters that have an entry for &xi; follow a Gamma
+    distribution with a mean sampled from Gaussian(&mu;, &sigma;) and a standard deviation given by &xi;.
+    </p>
     "
     
     res
@@ -415,8 +421,8 @@ shinyServer(function(input, output, session) {
     )
     
     colnames(df) <- c(
-      '$$\\text{Parameter}$$', '$$\\text{E}_{\\text{mean}}$$',
-      '$$\\text{E}_{\\text{std}}$$', '$$\\text{G}_{\\text{std}}$$',
+      '$$\\text{Parameter}$$', '$$\\mu$$',
+      '$$\\sigma$$', '$$\\xi$$',
       '$$\\text{Unit}$$', '$$\\text{Description}$$'
     )
     

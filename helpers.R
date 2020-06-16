@@ -25,10 +25,10 @@ INTERVENTION_COLOR <- '#ADADAD'
 
 # Setup Python Environment
 # system('apt-get install python3-tk')
-# virtualenv_create(envname = 'python_env', python = 'python3')
-# virtualenv_remove(envname = "python_env", packages = "pip")
-# print(py_discover_config())
-# virtualenv_install('python_env', packages = c('numpy', 'h5py', 'scipy', 'tqdm', 'requests', 'lxml', 'selenium'))#, 'matplotlib==1.5.3'))
+virtualenv_create(envname = 'python_env', python = 'python3')
+virtualenv_remove(envname = "python_env", packages = "pip")
+print(py_discover_config())
+virtualenv_install('python_env', packages = c('numpy', 'h5py', 'scipy', 'tqdm', 'requests', 'lxml', 'selenium'))#, 'matplotlib==1.5.3'))
 # virtualenv_install('python_env', packages = c('pip==19.0.3', 'numpy', 'matplotlib'))
 # virtualenv_install('python_env', packages = c('numpy', 'matplotlib', 'requests'), ignore_installed = TRUE)
 # virtualenv_install('python_env', packages = c('numpy', 'matplotlib', 'pip==19.0'), ignore_installed = TRUE)
@@ -133,10 +133,20 @@ plot_interventions <- function(config, model, cols, ylab, title, show_interventi
   
   res <- model$data
   alpha <- res[['alpha']][['posterior']]
+  sanitize <- function(x) {
+    y <- x
+    y[y < 0] <- 0
+    y[y > 1] <- 1
+    y
+  }
   
   dat <- cbind(alpha[, 1], 1 - alpha[, -1])
   colnames(dat) <- c('Time', 'p5', 'p30', 'p50', 'p70', 'p95')
   dat <- data.frame(dat)
+  dat$p5 <- sanitize(dat$p5)
+  dat$p30 <- sanitize(dat$p30)
+  dat$p50 <- sanitize(dat$p50)
+  dat$p70 <- sanitize(dat$p70)
   
   start <- as.Date(config[['startdate']], tryFormats = '%m/%d/%y')
   dat$Date <- start + dat$Time - 1
@@ -170,7 +180,7 @@ plot_interventions <- function(config, model, cols, ylab, title, show_interventi
     preddat <- model$single_data[['alpha']]
     # preddat <- data.frame('Time' = preddat[, 1], 'Mean' = preddat[, 2])
     # preddat$Date <- start + preddat$Time - 1
-    dat$Mean <- preddat[, 2]
+    dat$Mean <- sanitize(preddat[, 2])
 
     p <- p +
       geom_line(data = dat, aes(x = Date, y = Mean, color = 'Intervention')) +
