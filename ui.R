@@ -107,8 +107,8 @@ body <- dashboardBody(
             </p>
             
             <p>
-            In addition to ask the model questions about what could have happened, you can also ask it what might happen under different
-            interventions. Under <i>Interactive Exploration</i>, you can add your own interventions and see the effect the model predict they
+            In addition to asking the model questions about what could have happened, you can also ask it what might happen under different
+            interventions. Under <i>Interactive Exploration</i>, you can add your own interventions and see the effect the model predicts they
             would have.
             </p>
             "
@@ -178,50 +178,34 @@ body <- dashboardBody(
           tabBox(
             width = NULL,
             id = 'tabset1', title = '',
-            tabPanel(
-              'Core I',
-              withMathJax(),
             
-              HTML(
-                'Here, you can tweak the core model parameters.'
-              ),
+            tabPanel(
+              'Intervention',
+              withMathJax(),
               
+              HTML(
+                'After running the model, this panel allows you to see the effect of past and future interventions.
+                Interventions are formalized as a reduction in social contact taking place from a particular date onwards.'
+              ),
               tags$hr(),
               
               numericInput(
-                'delayREC',
-                HTML('Average Recovery Time of Non-Hospitalised Patients (Days) [d<sub>rec</sub>]'),
-                value = 12, width = '100%'
+                'nr_interventions_forecast',
+                'Number of Your Interventions',
+                min = 1, max = 100,
+                value = 1, width = '100%'
               ),
               
-              sliderInput(
-                'hosfrac',
-                HTML('Average % of Infected People Needing Hospitalization [h]'),
-                value = 0.05, min = 0.01, max = 0.30, step = 0.01, width = '100%'
-              ),
-              
-              sliderInput(
-                'ICUfrac',
-                'Average % of Hospitalized People Needing Intensive Care:',
-                value = 0.05, min = 0.01, max = 0.30, step = 0.01, width = '100%'
-              ),
-              
-              sliderInput(
-                'esmda_iterations',
-                'Model Iterations',
-                value = 4, min = 2, max = 16, width = '100%'
-              ),
-              
-              actionButton('run1', 'Run')
+              uiOutput('intervention'),
+              div(style = 'display: inline-block;',  actionButton('intervene', 'Intervene')),
+              div(style = 'display: inline-block;',  actionButton('reset', 'Reset Intervention'))
             ),
             
             tabPanel(
-              'Core II',
-              withMathJax(),
+              'Parameters I',
               
               HTML(
-                'Here, you can change the Gaussian prior on R<sub>0</sub> and include past interventions. For the Netherlands,
-                we have added past interventions.'
+                'In this expert panel, you can change the more subtle components of the model by changing the priors on key parameters.'
               ),
               
               tags$hr(),
@@ -231,7 +215,7 @@ body <- dashboardBody(
                 cellWidths = c('50%', '50%'), 
                 numericInput(
                   'R0_mean', label = withMathJax('\\( \\mu \\)'),
-                  value = 3.40, min = 0, max = 5, step = 0.01, width = '100%'
+                  value = 3.20, min = 0, max = 5, step = 0.01, width = '100%'
                 ), 
                 numericInput(
                   'R0_sd', label = withMathJax('\\( \\sigma \\)'),
@@ -239,45 +223,35 @@ body <- dashboardBody(
                 )
               ),
               
-              numericInput(
-                'nr_interventions',
-                'Number of Interventions',
-                min = 1, max = 100,
-                value = 16, width = '100%'
+              tags$b('Average Fraction of Infected People Needing Hospitalization [h]'),
+              splitLayout(
+                cellWidths = c('50%', '50%'), 
+                # Add a standard deviation!
+                numericInput(
+                  'hosfrac_mean', label = withMathJax('\\( \\mu \\)'),
+                  value = 0.015, min = 0.001, max = 0.30, step = 0.001, width = '100%'
+                ),
+                numericInput(
+                  'hosfrac_sd', label = withMathJax('\\( \\sigma \\)'),
+                  value = 0.005, min = 0.001, max = 0.10, step = 0.001, width = '100%'
+                )
               ),
               
-              checkboxInput(
-                'show_alpha',
-                'Show Past Interventions',
-                value = FALSE
-              ),
-              uiOutput('prior_intervention'),
-              actionButton('run2', 'Run')
-            ),
-            
-            tabPanel(
-              'Expert',
-              
-              HTML(
-                'In this expert panel, you can change the more subtle components of the model by changing the priors on key parameters.'
-              ),
-              
-              tags$hr(),
-              
-              HTML('<b>Prior on % Hospitalized People Dying</b> [f<sub>hos</sub>]'),
+              HTML('<b>Prior on Case Fatality Rate of All Patients</b> [CFR<sub>hos</sub>]'),
               splitLayout(
                 cellWidths = c('50%', '50%'), 
                 numericInput(
                   'dfrac_mean', label = withMathJax('\\( \\mu \\)'),
-                  value = 0.30, min = 0, max = 1, step = 0.01, width = '100%'
+                  value = 0.22, min = 0, max = 1, step = 0.01, width = '100%'
                 ), 
                 numericInput(
                   'dfrac_sd', label = withMathJax('\\( \\sigma \\)'),
-                  value = 0.50, min = 0, max = 2, step = 0.01, width = '100%'
+                  value = 0.03, min = 0, max = 2, step = 0.01, width = '100%'
                 )
               ),
               
-              HTML('<b>Prior on % IC Patients Dying</b> [f<sub>icu</sub>]'),
+              # No smoothing (so no \xi)
+              HTML('<b>Prior on Case Fatality Rate of IC Patients</b> [f<sub>icu</sub>]'),
               splitLayout(
                 cellWidths = c('50%', '50%'), 
                 numericInput(
@@ -289,23 +263,39 @@ body <- dashboardBody(
                   value = 0.020, min = 0, max = 2, step = 0.01, width = '100%'
                 )
               ),
+  
+              actionButton('run2', 'Run')
+            ),
+        
+            tabPanel(
+              'Parameters II',
+              
+              HTML(
+                'In this expert panel, you can change the more subtle components of the model by changing the priors on key parameters.'
+              ),
+              
+              tags$hr(),
               
               HTML('<b>Prior on Days Between Hospitalisation and Recovery</b> [d<sub>hos</sub>]'),
               splitLayout(
-                cellWidths = c('50%', '50%'), 
+                cellWidths = c('33%', '33%', '33%'), 
                 numericInput(
                   'delayHOS_mean', label = withMathJax('\\( \\mu \\)'),
                   value = 7, min = 0, max = 50, step = 0.01, width = '100%'
                 ), 
                 numericInput(
                   'delayHOS_sd', label = withMathJax('\\( \\sigma \\)'),
+                  value = 0, min = 0, max = 10, step = 0.01, width = '100%'
+                ),
+                numericInput(
+                  'delayHOS_xi', label = withMathJax('\\( \\sigma \\)'),
                   value = 2, min = 0, max = 10, step = 0.01, width = '100%'
                 )
               ),
               
               HTML('<b>Prior on Days of Hospital Treatment to Recovery (no IC)</b> [d<sub>hosrec</sub>]'),
               splitLayout(
-                cellWidths = c('50%', '50%'), 
+                cellWidths = c('33%', '33%', '33%'), 
                 numericInput(
                   'delayHOSREC_mean', label = withMathJax('\\( \\mu \\)'),
                   value = 9, min = 0, max = 50, step = 0.01, width = '100%'
@@ -313,12 +303,16 @@ body <- dashboardBody(
                 numericInput(
                   'delayHOSREC_sd', label = withMathJax('\\( \\sigma \\)'),
                   value = 0, min = 0, max = 10, step = 0.01, width = '100%'
+                ),
+                numericInput(
+                  'delayHOSREC_xi', label = withMathJax('\\( \\xi \\)'),
+                  value = 4, min = 0, max = 10, step = 0.01, width = '100%'
                 )
               ),
               
               HTML('<b>Prior on Days of Hospital Treatment for Mortalities (no IC)</b> [d<sub>hosd</sub>]'),
               splitLayout(
-                cellWidths = c('50%', '50%'), 
+                cellWidths = c('33%', '33%', '33%'), 
                 numericInput(
                   'delayHOSD_mean', label = withMathJax('\\( \\mu \\)'),
                   value = 3, min = 0, max = 50, step = 0.01, width = '100%'
@@ -326,86 +320,79 @@ body <- dashboardBody(
                 numericInput(
                   'delayHOSD_sd', label = withMathJax('\\( \\sigma \\)'),
                   value = 1, min = 0, max = 10, step = 0.01, width = '100%'
-                )
-              ),
-              
-              tags$b('Prior on Days of Hospitalization to IC'),
-              splitLayout(
-                cellWidths = c('50%', '50%'), 
+                ),
                 numericInput(
-                  'delayICUCAND_mean', label = withMathJax('\\( \\mu \\)'),
-                  value = 0, min = 0, max = 50, step = 0.01, width = '100%'
-                ), 
-                numericInput(
-                  'delayICUCAND_sd', label = withMathJax('\\( \\sigma \\)'),
-                  value = 0, min = 0, max = 10, step = 0.01, width = '100%'
+                  'delayHOSD_xi', label = withMathJax('\\( \\xi \\)'),
+                  value = 2, min = 0, max = 10, step = 0.01, width = '100%'
                 )
               ),
               
               HTML('<b>Prior on Days for IC Patients to Die</b> [d<sub>icud</sub>]'),
               splitLayout(
-                cellWidths = c('50%', '50%'), 
+                cellWidths = c('33%', '33%', '33%'), 
                 numericInput(
                   'delayICUD_mean', label = withMathJax('\\( \\mu \\)'),
                   value = 11, min = 0, max = 50, step = 0.01, width = '100%'
                 ), 
                 numericInput(
                   'delayICUD_sd', label = withMathJax('\\( \\sigma \\)'),
-                  value = 8, min = 0, max = 10, step = 0.01, width = '100%'
+                  value = 1, min = 0, max = 10, step = 0.01, width = '100%'
+                ),
+                numericInput(
+                  'delayICUD_xi', label = withMathJax('\\( \\xi \\)'),
+                  value = 8, min = 0, max = 20, step = 0.01, width = '100%'
                 )
               ),
               
               HTML('<b>Prior on Days for IC Patients to Recover</b> [d<sub>icurec</sub>]'),
               splitLayout(
-                cellWidths = c('50%', '50%'), 
+                cellWidths = c('33%', '33%', '33%'), 
                 numericInput(
                   'delayICUREC_mean', label = withMathJax('\\( \\mu \\)'),
-                  value = 24, min = 0, max = 50, step = 0.01, width = '100%'
+                  value = 23, min = 0, max = 50, step = 0.01, width = '100%'
                 ), 
                 numericInput(
                   'delayICUREC_sd', label = withMathJax('\\( \\sigma \\)'),
                   value = 1, min = 0, max = 10, step = 0.01, width = '100%'
+                ),
+                numericInput(
+                  'delayICUREC_xi', label = withMathJax('\\( \\xi \\)'),
+                  value = 16, min = 0, max = 30, step = 0.01, width = '100%'
                 )
               ),
               
+              numericInput(
+                'nr_interventions',
+                'Number of Past Interventions',
+                min = 1, max = 100,
+                value = 16, width = '100%'
+              ),
+              
+              checkboxInput(
+                'show_alpha',
+                'Show Past Interventions',
+                value = FALSE
+              ),
+              
+              sliderInput(
+                'esmda_iterations',
+                'Model Iterations',
+                value = 4, min = 2, max = 16, width = '100%'
+              ),
+              
+              uiOutput('prior_intervention'),
               actionButton('run3', 'Run')
             )
           )
-        )
-        
-       
-      ),
-      
-      fluidRow(
-        column(
-          width = 8,
-          box(
-            title = 'Effect of Interventions', width = NULL, solidHeader = TRUE, status = 'primary',
-            withSpinner(plotOutput('interventionPlot', height = 500), color = '#0dc5c1')
-          )
         ),
-        
-        column(
-          width = 4,
-          box(
-            status = 'warning', width = NULL,
-            title = 'Intervention Settings',
-            HTML(
-              'After running the model, this panel allows you to see the effect of past and future interventions.
-              Interventions are formalized as a reduction in social contact taking place from a particular date onwards.'
-            ),
-            tags$hr(),
-            
-            numericInput(
-              'nr_interventions_forecast',
-              'Number of Interventions',
-              min = 1, max = 100,
-              value = 1, width = '100%'
-            ),
-            
-            uiOutput('intervention'),
-            div(style = 'display: inline-block;',  actionButton('intervene', 'Intervene')),
-            div(style = 'display: inline-block;',  actionButton('reset', 'Reset Intervention'))
+          
+        fluidRow(
+          column(
+            width = 8,
+            box(
+              title = 'Effect of Interventions', width = NULL, solidHeader = TRUE, status = 'primary',
+              withSpinner(plotOutput('interventionPlot', height = 500), color = '#0dc5c1')
+            )
           )
         )
       )

@@ -299,7 +299,7 @@ shinyServer(function(input, output, session) {
     </p>
     
     <p>
-    The model follows an SEIR structure which assumes that the population is comprised of
+    The model follows a SEIR structure which assumes that the population is comprised of
     susceptible, exposed (i.e., latent infection), infectious, and removed subpopulations. Importantly, the model
     assumes that reinfections do not occur, that is, that immunity lasts for life, or at least until the end of the simulation.
     In addition to the basic SEIR structure, the model also incorporates a realistic flow process for hospitalization and intensive care.
@@ -315,7 +315,7 @@ shinyServer(function(input, output, session) {
     
     <p>
     &#945;(t) is a key parameter, which encodes the strength of social distancing: &#945;(t) = 0 when no measures are in place, and
-    &#945;(t) = 1 when social distancing would prevent any transmission. Under <i>Interactive Exploration</i>, you can tweak these parameters, make model predictions, and change &#945;(t) to
+    &#945;(t) = 1 when social distancing would prevent any transmission. Under <i>Interactive Exploration</i>, you can adjust these parameters, make model predictions, and change &#945;(t) to
     assess the effect that interventions could have. An overview of all parameters and sensible default values are given in the Table below.
     </p>
     
@@ -326,8 +326,8 @@ shinyServer(function(input, output, session) {
     
     <p>
     The fraction of hospitalized patients who die immediately without going to the ICU is given by f<sub>hos</sub>, while the
-    fraction who goes to ICU is given by i(t). Some hospitalized patients recover, and this process of recover takes about d<sub>hosrec</sub> days.
-    It takes about d<sub>icurec</sub> days for patients to recover from intensive care treatment, if the recover at all.
+    fraction who goes to the ICU is given by i(t). Some hospitalized patients recover, and this process of recover takes about d<sub>hosrec</sub> days.
+    It takes about d<sub>icurec</sub> days for patients to recover from intensive care treatment, if they recover at all.
     A fraction of ICU patients, given by f<sub>icu</sub>, unfortunately die, and this process takes about d<sub>icud</sub> days.
     </p>
     
@@ -368,19 +368,19 @@ shinyServer(function(input, output, session) {
     
     values_mean <- c(
       '$$80000$$', '$$0.90$$', '$$3.20$$', '$$0.20$$', '$$0.50$$', '$$7$$',
-      '$$3$$', '$$9$$', '$$11$$', '$$24$$', '$$12$$', '$$-$$', '$$0.30$$',
-      '$$0.015$$', '$$0.18 - 1$$', '$$0.30$$'
+      '$$3$$', '$$9$$', '$$11$$', '$$23$$', '$$12$$', '$$-$$', '$$0.30$$',
+      '$$0.015$$', '$$0.18 - 1$$', '$$0.22$$'
     )
     
     values_std <- c(
       '$$40000$$', '$$-$$', '$$0.50$$', '$$-$$', '$$-$$', '$$-$$',
       '$$1$$', '$$-$$', '$$-$$', '$$1$$', '$$-$$', '$$-$$', '$$0.02$$',
-      '$$0.005$$', '$$-$$', '$$-$$'
+      '$$0.005$$', '$$-$$', '$$0.03$$'
     )
     
     G <- c(
       '$$-$$', '$$-$$', '$$-$$', '$$-$$', '$$-$$', '$$2$$',
-      '$$2$$', '$$4$$', '$$8$$', '$$19$$', '$$-$$', '$$-$$', '$$-$$',
+      '$$2$$', '$$4$$', '$$8$$', '$$17$$', '$$-$$', '$$-$$', '$$-$$',
       '$$-$$', '$$-$$', '$$-$$'
     )
     
@@ -405,7 +405,7 @@ shinyServer(function(input, output, session) {
       '$$\\text{Days required for recovery of mild cases}$$',
       
       '$$f_{\\text{hos}} = \\text{CFR}_{\\text{hos}} - i(t) f_{\\text{icu}}$$',
-      '$$\\text{CFR of ICU patients (estimated from data)}$$',
+      '$$\\text{Case Fatality Rate (CFR) of ICU patients (estimated from data)}$$',
       '$$\\text{Fraction of hospitalized cases (estimated from under registration and Sanquin study)}$$',
       '$$\\text{Fraction of hospitalized patients in need for IC treatment (fitted on reported rates from hospitalization and ICU with Gaussian smoothing)}$$',
       '$$\\text{Aggregated CFR of hospitalized and ICU cases (estimated from reported mortality rates by NICE)}$$'

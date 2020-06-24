@@ -14,6 +14,11 @@ ALPHAS <- list(
 
 DAYALPHAS <- c(8, 12, 15, 18, 19, 20, 21, 22, 23, 24, 26, 28, 30, 32, 34, 36)
 
+# Need to transform that to Gaussians!!
+# ALPHAS <- list(c(0.1,0.6), c(0.6,0.95), c(0.6,0.95),c(0.6,0.95),c(0.6,0.95),c(0.6,0.95), c(0.6,0.95))
+# DAYALPHAS <-  c(8,  15, 21, 28, 33, 40, 50)
+
+
 LINESIZE <- 0.75
 INTERVENTION_COLOR <- '#ADADAD'
 
@@ -25,10 +30,10 @@ INTERVENTION_COLOR <- '#ADADAD'
 
 # Setup Python Environment
 # system('apt-get install python3-tk')
-virtualenv_create(envname = 'python_env', python = 'python3')
-virtualenv_remove(envname = "python_env", packages = "pip")
-print(py_discover_config())
-virtualenv_install('python_env', packages = c('numpy', 'h5py', 'scipy', 'tqdm', 'requests', 'lxml', 'selenium'))#, 'matplotlib==1.5.3'))
+# virtualenv_create(envname = 'python_env', python = 'python3')
+# virtualenv_remove(envname = "python_env", packages = "pip")
+# print(py_discover_config())
+# virtualenv_install('python_env', packages = c('numpy==1.18.5', 'h5py', 'scipy==1.4.1', 'tqdm', 'requests', 'lxml', 'selenium'))#, 'matplotlib==1.5.3'))
 # virtualenv_install('python_env', packages = c('pip==19.0.3', 'numpy', 'matplotlib'))
 # virtualenv_install('python_env', packages = c('numpy', 'matplotlib', 'requests'), ignore_installed = TRUE)
 # virtualenv_install('python_env', packages = c('numpy', 'matplotlib', 'pip==19.0'), ignore_installed = TRUE)
@@ -275,8 +280,8 @@ create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
     'esmda_iterations' = input$esmda_iterations,
     'N' = list(
       'type' = 'uniform',
-      'min' = 25000,
-      'max' = 150000
+      'min' = 20000,
+      'max' = 80000
     ),
 
     'sigma' = 0.20,
@@ -293,30 +298,33 @@ create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
       'type' = 'normal',
       'mean'= input$delayHOS_mean,
       'stddev'= input$delayHOS_sd,
-      'smooth_sd'= 3
+      'smooth_sd'= input$delayHOS_xi,
+      'smooth_sd_sd'= 0
     ),
     
     'delayHOSREC' = list(
       'type' = 'normal',
       'mean' = input$delayHOS_mean,
       'stddev' = input$delayHOSREC_sd,
-      'smooth_sd'= 4
+      'smooth_sd'= input$delayHOSREC_xi,
+      'smooth_sd_sd'= 0
     ),
     
     'delayHOSD' = list(
       'type' = 'normal',
       'mean' = input$delayHOSD_mean,
       'stddev'= input$delayHOSD_sd,
-      'smooth_sd' = 2,
-      'smooth_sd_sd' = 1
+      'smooth_sd' = input$delayHOSD_xi,
+      'smooth_sd_sd' = 0
     ),
     
-    'delayREC' = input$delayREC,
+    'delayREC' = 12,#input$delayREC,
     
+    # Not in the table
     'delayICUCAND' = list(
       'type' = 'normal',
-      'mean' = input$delayICUCAND_mean,
-      'stddev' = input$delayICUCAND_sd,
+      'mean' = 0, # input$delayICUCAND_mean,
+      'stddev' = 0, # input$delayICUCAND_sd,
       'smooth_sd' = 0,
       'smooth_sd_sd' = 0
     ),
@@ -325,40 +333,43 @@ create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
       'type' = 'normal',
       'mean' = input$delayICUD_mean,
       'stddev' = input$delayICUD_sd,
-      'smooth_sd' = 5,
-      'smooth_sd_sd' = 2
+      'smooth_sd' = input$delayICUD_xi,
+      'smooth_sd_sd' = 0
     ),
     
     'delayICUREC' = list(
       'type' = 'normal',
       'mean' = input$delayICUREC_mean,
       'stddev' = input$delayICUREC_sd,
-      'smooth_sd' = 15,
+      'smooth_sd' = input$delayICUREC_xi,
       'smooth_sd_sd' = 0
     ),
     
+    # h
     'hosfrac' = list(
       'type' = 'normal',
-      'mean' = input$hosfrac,
-      'stddev' = 0.01
+      'mean' = input$hosfrac_mean,
+      'stddev' = input$hosfrac_sd
     ),
     
+    # CFR_hos
     'dfrac' = list(
       'type' = 'normal',
       'mean' = input$dfrac_mean,
       'stddev' = input$dfrac_sd
     ),
     
+    # f_icu (CFR of IC Patients)
     'icudfrac' = list(
       'type' = 'normal',
       'mean' = input$icudfrac_mean,
       'stddev' = input$icudfrac_sd
     ),
     
-    'ICufrac' = input$ICUfrac,
+    'ICufrac' = 0.30, # does not matter (because estimated from the data, see icufracfile)
     
-    'calibration_mode' = c('dead', 'ICU'),
-    'observation_error' = c(100.0, 50.0),
+    'calibration_mode' = c('hospitalizedcum', 'ICU'),
+    'observation_error' = c(70.0, 50.0),
     'hist_time_steps' = c(30, 35, 40, 60),
     'p_values' =  c(0.05, 0.3, 0.5, 0.7, 0.95),
     
@@ -369,7 +380,7 @@ create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
     'icufracscale' = list(
       'type' = 'normal',
       'mean' = 1,
-      'stddev' = 0.1
+      'stddev' = 0.10
     ),
 
     'icufracfile' =  'output/netherlands_dashboard_icufrac.txt',
