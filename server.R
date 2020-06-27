@@ -11,6 +11,7 @@ shinyServer(function(input, output, session) {
   config_obj <- reactiveValues(data = NULL)
   has_intervened <- reactiveValues(data = NULL)
   reset <- reactiveValues(data = NULL)
+  clear_figures <- reactiveValues(data = NULL)
   
   single_run <- reactiveValues(data = NULL)
   nr_inter <- reactiveValues(data = NULL)
@@ -39,11 +40,20 @@ shinyServer(function(input, output, session) {
     model$data <- res[[1]]
     model$posterior_alphas <- res[[2]][['alpha']]
     model$config <- res[[2]]
+    
+    clear_figures$data <- FALSE
   }
   
-  observeEvent(input$run1, { run_model() })
-  observeEvent(input$run2, { run_model() })
-  observeEvent(input$run3, { run_model() })
+  observeEvent(input$run1, { 
+    clear_figures$data <- TRUE
+    run_model()
+  })
+  
+  observeEvent(input$run2, {
+    clear_figures$data <- TRUE
+    run_model()
+  })
+  
   observeEvent(input$reset, { has_intervened$boolean <- FALSE })
   
   observeEvent(input$intervene, {
@@ -106,18 +116,37 @@ shinyServer(function(input, output, session) {
       
       for (i in seq(nr_inter$data)) {
         day <- paste0('day_', i)
-        alpha <- paste0('alpha_', i)
+        alpha_mean <- paste0('alpha_mean_', i)
+        alpha_sd <- paste0('alpha_sd_', i)
+        
+        is_stored <- i <= length(ALPHAS)
+        
+        if (is_stored) {
+          mu <- ALPHAS[[i]][1]
+          sigma <- ALPHAS[[i]][2]
+          date <- startdate + DAYALPHAS[i]
+          
+        } else {
+          
+          mu <- 0.50
+          sigma <- 0.1
+          date <- Sys.Date()
+        }
         
         output[[i]] <- tagList()
         output[[i]] <- splitLayout(
-            cellWidths = c('50%', '50%'),
+            cellWidths = c('33%', '33%', '33%'),
             dateInput(
-              day, paste0('Intervention Date'),
-              value = startdate + DAYALPHAS[i], min = '2020-03-02', width = '100%'
+              day, paste0('Date'),
+              value = date, min = '2020-03-02', width = '100%'
             ),
             numericInput(
-              alpha, withMathJax(paste0('% Social Contact')),
-              value = 1 - mean(ALPHAS[[i]]), step = 0.01, min = 0, max = 1, width = '100%'
+              alpha_mean, withMathJax('\\( \\mu \\)'),
+              value = round(mu, 2), step = 0.01, min = 0, max = 1, width = '100%'
+            ),
+            numericInput(
+              alpha_sd, withMathJax('\\( \\sigma \\)'),
+              value = round(sigma, 2), step = 0.01, min = 0, max = 1, width = '100%'
             )
           )
       }
@@ -161,7 +190,12 @@ shinyServer(function(input, output, session) {
         title, has_intervened$boolean
       ) + scale_y_continuous(n.breaks = 5)
       reset$data <- FALSE
-      p
+      
+      if (clear_figures$data) {
+        return(NULL)
+      } else {
+        return(p)
+      }
     }
   })
     
@@ -176,7 +210,12 @@ shinyServer(function(input, output, session) {
         title, has_intervened$boolean
       ) + scale_y_continuous(n.breaks = 5)
       reset$data <- FALSE
-      p
+      
+      if (clear_figures$data) {
+        return(NULL)
+      } else {
+        return(p)
+      }
     }
   })
   
@@ -191,7 +230,12 @@ shinyServer(function(input, output, session) {
         title, has_intervened$boolean
       )
       reset$data <- FALSE
-      p
+      
+      if (clear_figures$data) {
+        return(NULL)
+      } else {
+        return(p)
+      }
     }
   })
   
@@ -207,12 +251,24 @@ shinyServer(function(input, output, session) {
       )
       reset$data <- FALSE
       p
+      
+      if (clear_figures$data) {
+        return(NULL)
+      } else {
+        return(p)
+      }
     }
   })
   
   output$allPlot <- renderPlot({
     if (!is.null(model$data)) {
-      plot_all(config$data, model, has_intervened$boolean)
+      p <- plot_all(config$data, model, has_intervened$boolean)
+      
+      if (clear_figures$data) {
+        return(NULL)
+      } else {
+        return(p)
+      }
     }
   })
   
@@ -229,7 +285,12 @@ shinyServer(function(input, output, session) {
     
     if (!is.null(model$data)) {
       p <- plot_interventions(config$data, model, cols, ylab, title, has_intervened$boolean)
-      p
+      
+      if (clear_figures$data) {
+        return(NULL)
+      } else {
+        return(p)
+      }
     }
   })
   

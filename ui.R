@@ -264,7 +264,7 @@ body <- dashboardBody(
                 )
               ),
   
-              actionButton('run2', 'Run')
+              actionButton('run1', 'Run')
             ),
         
             tabPanel(
@@ -361,27 +361,27 @@ body <- dashboardBody(
                 )
               ),
               
-              numericInput(
-                'nr_interventions',
-                'Number of Past Interventions',
-                min = 1, max = 100,
-                value = 16, width = '100%'
-              ),
-              
-              checkboxInput(
-                'show_alpha',
-                'Show Past Interventions',
-                value = FALSE
-              ),
-              
               sliderInput(
                 'esmda_iterations',
                 'Model Iterations',
                 value = 4, min = 2, max = 16, width = '100%'
               ),
               
+              numericInput(
+                'nr_interventions',
+                'Number of Past Interventions',
+                min = 1, max = 100,
+                value = 7, width = '100%'
+              ),
+              
+              checkboxInput(
+                'show_alpha',
+                'Show Prior for Past Interventions',
+                value = FALSE
+              ),
+              
               uiOutput('prior_intervention'),
-              actionButton('run3', 'Run')
+              actionButton('run2', 'Run')
             )
           )
         ),

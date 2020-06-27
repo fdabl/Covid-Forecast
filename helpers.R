@@ -5,18 +5,23 @@ library('RColorBrewer')
 # https://github.com/rstudio/rsconnect/issues/359
 # https://github.com/ranikay/shiny-reticulate-app
 
-# Interventions for The Netherlands
-ALPHAS <- list(
-  c(0.1,0.5), c(0.1,0.5), c(0.3,0.9), c(0.3,0.9), c(0.3,0.9),
-  c(0.3,0.9), c(0.6,0.95), c(0.6,0.95), c(0.7,0.95), c(0.7,0.95),
-  c(0.6,0.95), c(0.6,0.95), c(0.5,0.95), c(0.5,0.95), c(0.5,0.95), c(0.5,0.95)
-)
-
-DAYALPHAS <- c(8, 12, 15, 18, 19, 20, 21, 22, 23, 24, 26, 28, 30, 32, 34, 36)
+# Interventions for The Netherlands: Old
+# ALPHAS <- list(
+#   c(0.1,0.5), c(0.1,0.5), c(0.3,0.9), c(0.3,0.9), c(0.3,0.9),
+#   c(0.3,0.9), c(0.6,0.95), c(0.6,0.95), c(0.7,0.95), c(0.7,0.95),
+#   c(0.6,0.95), c(0.6,0.95), c(0.5,0.95), c(0.5,0.95), c(0.5,0.95), c(0.5,0.95)
+# )
+# 
+# DAYALPHAS <- c(8, 12, 15, 18, 19, 20, 21, 22, 23, 24, 26, 28, 30, 32, 34, 36)
 
 # Need to transform that to Gaussians!!
-# ALPHAS <- list(c(0.1,0.6), c(0.6,0.95), c(0.6,0.95),c(0.6,0.95),c(0.6,0.95),c(0.6,0.95), c(0.6,0.95))
-# DAYALPHAS <-  c(8,  15, 21, 28, 33, 40, 50)
+# Interventions for The Netherlands: New
+uni2norm <- function(p) {
+  c((p[1] + p[2]) / 2, (p[2] - p[1]) / sqrt(12))
+}
+ALPHAS <- list(c(0.1,0.6), c(0.6,0.95), c(0.6,0.95),c(0.6,0.95),c(0.6,0.95),c(0.6,0.95), c(0.6,0.95))
+ALPHAS <- lapply(ALPHAS, uni2norm)
+DAYALPHAS <-  c(8, 15, 21, 28, 33, 40, 50)
 
 
 LINESIZE <- 0.75
@@ -239,18 +244,30 @@ create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
   # Otherwise use the global variables (defined above)
   # The global variables are also what is shown as default input
   if (input$show_alpha) {
-    alphas_prior <- paste0('alpha_', seq(input$nr_interventions))
-    dayalphas_prior <- paste0('day_', seq(input$nr_interventions))
+    nr_int <- seq(input$nr_interventions)
+    
+    alpha_mean_prior <- paste0('alpha_mean_', nr_int)
+    alpha_sd_prior <- paste0('alpha_sd_', nr_int)
+    dayalphas_prior <- paste0('day_', nr_int)
 
-    ALPHAS <- sapply(alphas_prior, function(alpha) 1 - input[[alpha]])
-    DAYALPHAS <- sapply(dayalphas_prior, function(day) input[[day]])
+    ALPHAS <- lapply(seq(nr_int), function(i) {
+      c(input[[alpha_mean_prior[i]]], input[[alpha_sd_prior[i]]])
+    })
+    
+    startdate <- as.Date('3/1/20', tryFormats = '%m/%d/%y')
+    
+    DAYALPHAS <- sapply(dayalphas_prior, function(day) {
+      input[[day]] - startdate
+    })
   }
 
   # If the user has intervened (single_run = TRUE), add the intervention alphas and
   # the days on which the intervention took place to ALPHAS and DAYALPHAS
   if (single_run) {
-    alphas_inter <- paste0('alpha_intervention_', seq(input$nr_interventions_forecast))
-    dayalphas_inter <- paste0('day_intervention_', seq(input$nr_interventions_forecast))
+    nr_int <- seq(input$nr_interventions_forecast)
+    
+    alphas_inter <- paste0('alpha_intervention_', nr_int)
+    dayalphas_inter <- paste0('day_intervention_', nr_int)
 
     ALPHAS_INTER <- lapply(alphas_inter, function(alpha) c(1 - input[[alpha]], 0.10))
     DAYALPHAS_INTER <- sapply(dayalphas_inter, function(day) input[[day]])
@@ -266,6 +283,7 @@ create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
     # print(ALPHAS)
     # print(DAYALPHAS)
   }
+  
   
   json <- list(
     'worldfile' = FALSE,
@@ -373,7 +391,7 @@ create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
     'hist_time_steps' = c(30, 35, 40, 60),
     'p_values' =  c(0.05, 0.3, 0.5, 0.7, 0.95),
     
-    'alpha_normal' = single_run,
+    'alpha_normal' = TRUE, #single_run,
     'alpha' = ALPHAS,
     'dayalpha' = DAYALPHAS,
     
