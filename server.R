@@ -82,6 +82,20 @@ shinyServer(function(input, output, session) {
       config_int$alpha <- alphas
       model$config_int <- config_int
       
+      hammer <- input$hammer
+      hammer_date <- as.numeric(input$hammer_date) - as.numeric(startdate)
+      
+      if (hammer) {
+        config_int$ACCC_timestart <- hammer_date
+        config_int$hammer_ICU <- input$hammer_ICU
+        config_int$hammer_alpha <- norm2uni(1 - input$hammer_alpha) # input is % social contact reduction
+        
+      } else {
+        n <- names(config_int)
+        to_remove <- n[grepl('ACCC|hammer', n)]
+        config_int[to_remove] <- NULL
+      }
+      
       write(prettify(toJSON(config_int)), 'config_updated.json')
       
       res <- run_dashboard_wrapper(toJSON(config_int, auto_unbox = TRUE))

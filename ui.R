@@ -197,6 +197,28 @@ body <- dashboardBody(
               ),
               
               uiOutput('intervention'),
+              
+              checkboxInput(
+                'hammer', 'Implement Automatic Hammer', value = FALSE
+              ),
+              conditionalPanel(
+                condition = 'input.hammer == 1',
+                splitLayout(
+                  cellWidths = c('33%', '33%', '33%'),
+                  dateInput(
+                    'hammer_date', paste0('Hammer Allowed From'),
+                    min = '2020-03-02', width = '100%'
+                  ),
+                  numericInput(
+                    'hammer_alpha', withMathJax(paste0('% Social Contact')),
+                    value = 0.30, step = 0.01, min = 0, max = 1, width = '100%'
+                  ),
+                  numericInput(
+                    'hammer_ICU', paste0('ICU Threshold'),
+                    value = 500, min = 1, max = 10000, width = '100%'
+                  )
+                )
+              ),
               div(style = 'display: inline-block;',  actionButton('intervene', 'Intervene')),
               div(style = 'display: inline-block;',  actionButton('reset', 'Reset Intervention'))
             ),

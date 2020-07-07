@@ -19,30 +19,41 @@ library('RColorBrewer')
 uni2norm <- function(p) {
   c((p[1] + p[2]) / 2, (p[2] - p[1]) / sqrt(12))
 }
-ALPHAS <- list(c(0.1,0.6), c(0.6,0.95), c(0.6,0.95),c(0.6,0.95),c(0.6,0.95),c(0.6,0.95), c(0.6,0.95))
+
+norm2uni <- function(mean, sd = 0.10) {
+  p2 <- sd * sqrt(12) / 2 + mean
+  p1 <- 2 * mean - p2
+  c(p1, p2)
+}
+
+ALPHAS <- list(
+  c(0.1,0.6), c(0.3,0.90), c(0.6,0.95),
+  c(0.6,0.95), c(0.6,0.95), c(0.6,0.95), c(0.5,0.70)
+)
 ALPHAS <- lapply(ALPHAS, uni2norm)
-DAYALPHAS <-  c(8, 15, 21, 28, 33, 40, 50)
+DAYALPHAS <-  c(8, 15, 20, 23, 28, 32, 72)
 
 
 LINESIZE <- 0.75
 INTERVENTION_COLOR <- '#ADADAD'
 
-
 # use_condaenv("r-reticulate")
-# use_python('/usr/bin/python3')
+use_python('/usr/bin/python3')
 # py_install(c('numpy', 'matplotlib'))
 # use_python('/anaconda3/bin/python3')
 
 # Setup Python Environment
 # system('apt-get install python3-tk')
+
 # virtualenv_create(envname = 'python_env', python = 'python3')
 # virtualenv_remove(envname = "python_env", packages = "pip")
 # print(py_discover_config())
 # virtualenv_install('python_env', packages = c('numpy==1.18.5', 'h5py', 'scipy==1.4.1', 'tqdm', 'requests', 'lxml', 'selenium'))#, 'matplotlib==1.5.3'))
+
 # virtualenv_install('python_env', packages = c('pip==19.0.3', 'numpy', 'matplotlib'))
 # virtualenv_install('python_env', packages = c('numpy', 'matplotlib', 'requests'), ignore_installed = TRUE)
 # virtualenv_install('python_env', packages = c('numpy', 'matplotlib', 'pip==19.0'), ignore_installed = TRUE)
-use_virtualenv('python_env', required = TRUE)
+# use_virtualenv('python_env', required = TRUE)
 
 # source_python('source.py')
 source_python('bin/dashboard_wrapper.py')
@@ -51,21 +62,8 @@ source_python('bin/dashboard_wrapper.py')
 # 
 # config <- fromJSON('Covid-SEIR/configs/netherlands_dashboard.json')
 # config <- fromJSON('config.json')
+# config$single_run <- TRUE
 # res <- run_dashboard_wrapper(toJSON(config, auto_unbox = TRUE))
-# # 
-# config2 <- config
-# config2$single_run <- FALSE
-# res2 <- run_dashboard_wrapper(toJSON(config2, auto_unbox = TRUE))
-
-# - give you updates json (with posterior means and sds) and pass this to single-run
-# - make a button for the hammer
-
-
-# time, mean, p5, p30, p50, p70, p95, observed
-
-# https://community.rstudio.com/t/python-virtual-environment-in-r-shinyapp-io-stopped-working-suddenly/62561/2
-# https://community.rstudio.com/t/using-cron-to-import-data-daily-and-update-shiny-app/24217/4
-# https://community.rstudio.com/t/running-code-in-shiny-periodically/27624
 
 
 plot_predictions <- function(
@@ -81,18 +79,17 @@ plot_predictions <- function(
   start <- as.Date(config[['startdate']], tryFormats = '%m/%d/%y')
   dat$Date <- start + dat$Time - 1
   
-  p <- ggplot(dat, aes(x = Date, y = Mean)) +
+  p <- ggplot(dat, aes(x = Date, y = p50)) +
     geom_ribbon(aes(ymin = p5, ymax = p95, fill = '90% CI'), alpha = 0.50) +
     geom_ribbon(aes(ymin = p30, ymax = p70, fill = '40% CI'), alpha = 0.75) +
-    geom_point(aes(y = Observed)) +
-    geom_line(aes(color = 'Mean'), size = LINESIZE) +
+    geom_point(aes(y = Observed), color = 'gray30', size = 0.50) +
     geom_line(aes(y = p50, color = 'Median'), size = LINESIZE) +
     ggtitle(title) +
     ylab(ylab) +
     scale_colour_manual(
       name = '',
-      values = c('Mean' = 'black', 'Median' = 'gray76'),
-      labels = c('Mean', 'Median')
+      values = c('Median' = cols[2]),
+      labels = c('Median')
     ) +
     scale_fill_manual(
       name = '',
@@ -122,12 +119,12 @@ plot_predictions <- function(
       geom_ribbon(
         data = dat,
         aes(ymin = Mean * (1 - (p50 - p5) / p50), ymax = Mean * (1 + (p95 - p50) / p50)),
-        alpha = 0.50, fill = INTERVENTION_COLOR
+        alpha = 0.35, fill = INTERVENTION_COLOR
       ) +
       scale_colour_manual(
         name = '',
-        values = c('Intervention' = INTERVENTION_COLOR, 'Mean' = 'black', 'Median' = 'gray76'),
-        labels = c('Intervention', 'Mean', 'Median')
+        values = c('Intervention' = INTERVENTION_COLOR, 'Median' = cols[2]),
+        labels = c('Intervention', 'Median')
       )
   }
   
@@ -164,14 +161,13 @@ plot_interventions <- function(config, model, cols, ylab, title, show_interventi
   p <- ggplot(dat, aes(x = Date, y = p50)) +
     geom_ribbon(aes(ymin = p5, ymax = p95, fill = '90% CI'), alpha = 0.50) +
     geom_ribbon(aes(ymin = p30, ymax = p70, fill = '40% CI'), alpha = 0.75) +
-    geom_line(aes(color = 'Mean'), size = LINESIZE) +
     geom_line(aes(y = p50, color = 'Median'), size = LINESIZE) +
     ggtitle(title) +
     ylab(ylab) +
     scale_colour_manual(
       name = '',
-      values = c('Mean' = 'black', 'Median' = 'gray76'),
-      labels = c('Mean', 'Median')
+      values = c('Median' = cols[2]),
+      labels = c('Median')
     ) +
     scale_fill_manual(
       name = '',
@@ -197,12 +193,12 @@ plot_interventions <- function(config, model, cols, ylab, title, show_interventi
       geom_ribbon(
         data = dat,
         aes(ymin = Mean * (1 - (p50 - p5) / p50), ymax = Mean * (1 + (p95 - p50) / p50)),
-        alpha = 0.50, fill = INTERVENTION_COLOR, size = LINESIZE
+        alpha = 0.35, fill = INTERVENTION_COLOR, size = LINESIZE
       ) +
       scale_colour_manual(
         name = '',
-        values = c('Intervention' = INTERVENTION_COLOR, 'Mean' = 'black', 'Median' = 'gray76'),
-        labels = c('Intervention', 'Mean', 'Median')
+        values = c('Intervention' = INTERVENTION_COLOR, 'Median' = cols[2]),
+        labels = c('Intervention', 'Median')
       )
   }
   
@@ -238,6 +234,28 @@ plot_all <- function(data, model, has_intervened) {
 }
 
 
+add_alphas <- function(alphas, dayalphas) {
+  alphas_new <- list()
+  dayalphas_new <- c()
+  
+  n <- length(alphas)
+  
+  for (i in seq(n-1)) {
+    a1 <- alphas[[i]]
+    a2 <- alphas[[i+1]]
+    
+    to_add <- list(c(mean(c(a1[1], a2[1])), mean(c(a1[2], a2[2]))))
+    alphas_new <- c(alphas_new, list(a1), to_add)
+    
+    d1 <- dayalphas[i]
+    d2 <- dayalphas[i+1]
+    dayalphas_new <- c(dayalphas_new, d1, round(mean(c(d1, d2))))
+  }
+  
+  list(alphas_new, dayalphas_new)
+}
+
+
 create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
   
   # If user shows the alphas, use the alpha input
@@ -259,6 +277,20 @@ create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
     DAYALPHAS <- sapply(dayalphas_prior, function(day) {
       input[[day]] - startdate
     })
+    
+    # add to alphas for uncertainty
+    # todate <- Sys.Date()
+    # total_days <- as.numeric(todate - startdate)
+    # last_day <- DAYALPHAS[length(DAYALPHAS)]
+    # additional_days <- seq(last_day + 10, total_days - 20, 10)
+    # additional_alphas <- lapply(seq(length(additional_days)), function(i) c(0.75, 0.20))
+    # 
+    # ALPHAS <- c(ALPHAS, additional_alphas)
+    # DAYALPHAS <- c(DAYALPHAS, additional_days)
+    
+    # a <- add_alphas(ALPHAS, DAYALPHAS)
+    # ALPHAS <- a[[1]]
+    # DAYALPHAS <- a[[2]]
   }
 
   # If the user has intervened (single_run = TRUE), add the intervention alphas and
@@ -280,10 +312,20 @@ create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
     
     ALPHAS <- posterior_alphas
     # ALPHAS <- posterior_alphas
-    # print(ALPHAS)
-    # print(DAYALPHAS)
   }
   
+  startdate <- as.Date('3/1/20', tryFormats = '%m/%d/%y')
+  todate <- Sys.Date()
+  total_days <- as.numeric(todate - startdate)
+  last_day <- DAYALPHAS[length(DAYALPHAS)]
+  additional_days <- round(seq(last_day - 40, total_days - 15, length.out = 3))
+  additional_alphas <- lapply(seq(length(additional_days)), function(i) c(0.75, 0.075))
+
+  ALPHAS <- c(ALPHAS, additional_alphas)
+  DAYALPHAS <- c(DAYALPHAS, additional_days)
+  
+  print(ALPHAS)
+  print(DAYALPHAS)
   
   json <- list(
     'worldfile' = FALSE,
@@ -293,7 +335,7 @@ create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
     'startdate' = '3/1/20',
     'time_delay' = 12,
     'population' = 17e6,
-    'nr_prior_samples' = 50,
+    'nr_prior_samples' = 100,
     'nr_forecast_samples' = 1500,
     'esmda_iterations' = input$esmda_iterations,
     'N' = list(
@@ -336,7 +378,7 @@ create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
       'smooth_sd_sd' = 0
     ),
     
-    'delayREC' = 12,#input$delayREC,
+    'delayREC' = 12, #input$delayREC,
     
     # Not in the table
     'delayICUCAND' = list(
@@ -386,8 +428,8 @@ create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
     
     'ICufrac' = 0.30, # does not matter (because estimated from the data, see icufracfile)
     
-    'calibration_mode' = c('hospitalizedcum', 'ICU'),
-    'observation_error' = c(70.0, 50.0),
+    'calibration_mode' = c('hospitalizedcum', 'ICU', 'dead'),
+    'observation_error' = c(3000.0, 500.0, 3000.0),
     'hist_time_steps' = c(30, 35, 40, 60),
     'p_values' =  c(0.05, 0.3, 0.5, 0.7, 0.95),
     
@@ -406,7 +448,20 @@ create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
     'icdatafile' = 'res/icdata_main.txt',
     'single_run' = single_run,
     'output_base_filename' = 'netherlands_dashboard',
-    
+    'ACCC_timeinterval' = 14000,
+    # 'ACCC_timestart' = hammer_date, # Set only in the single-run, so hammer does not run in ensemble
+    'ACCC_step' = 0.04,
+    'ACCC_maxstep' = 0,
+    'ACCC_step_sd' = 0.01,
+    'ACCC_low' = 200,
+    'ACCC_slope' = 20,
+    'ACCC_cliplow' = 0.01,
+    'ACCC_cliphigh' = 0.99,
+    'ACCC_scale' = 1,
+    # 'hammer_ICU' = input$hammer_ICU,
+    'hammer_slope' = 10e6, # Effectively not used
+    'hammer_release' = 500,
+    # 'hammer_alpha' = norm2uni(input$hammer_alpha),
     'YMAX' = 150e3,
     'XMAX' = 240,
     'plot' = list(
