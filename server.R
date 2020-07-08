@@ -120,6 +120,18 @@ shinyServer(function(input, output, session) {
   })
 
   
+  output$nr_interventions <- renderUI({
+    output <- tagList()
+    output[[1]] <- numericInput(
+      'nr_interventions',
+      'Number of Past Interventions',
+      min = 1, max = 100,
+      value = length(ALPHAS), width = '100%'
+    )
+    output
+  })
+              
+  
   # Allow user to set the prior interventions when box is ticked
   output$prior_intervention <- renderUI({
     if (show_prior_interventions$data) {
@@ -127,6 +139,8 @@ shinyServer(function(input, output, session) {
       startdate <- as.Date('3/1/20', tryFormats = '%m/%d/%y')
       
       output <- tagList()
+      print('In show past interventions')
+      print(ALPHAS)
       
       for (i in seq(nr_inter$data)) {
         day <- paste0('day_', i)
@@ -190,6 +204,37 @@ shinyServer(function(input, output, session) {
         )
       )
     }
+    output
+  })
+  
+  
+  # Allow user to set hammer
+  output$hammer_panel <- renderUI({
+    output <- tagList()
+    
+    # Set hammer date to minimum of intervention dates
+    intervention_sel <- paste0('day_intervention_', nr_inter_for$data)
+    intervention_dates <- as.Date(
+      sapply(intervention_sel, function(sel) input[[sel]]), origin = '1970-01-01'
+    )
+    
+    min_date <- min(intervention_dates)
+    
+    output[[1]] <- splitLayout(
+      cellWidths = c('33%', '33%', '33%'),
+      dateInput(
+        'hammer_date', paste0('Hammer Allowed From'),
+        min = min_date, value = min_date, width = '100%'
+      ),
+      numericInput(
+        'hammer_alpha', withMathJax(paste0('% Social Contact')),
+        value = 0.30, step = 0.01, min = 0, max = 1, width = '100%'
+      ),
+      numericInput(
+        'hammer_ICU', paste0('ICU Threshold'),
+        value = 500, min = 1, max = 10000, width = '100%'
+      )
+    )
     output
   })
   
@@ -326,12 +371,12 @@ shinyServer(function(input, output, session) {
       config_int <- model$config
       config_int$single_run <- TRUE
       
-      alphas_inter <- list(list(1 - 0.28, 0.10))
+      alphas_inter <- list(list(1 - 0.32, 0.10))
       alphas <- c(model$posterior_alphas, alphas_inter)
       
       # Make an intervention today
       startdate <- as.Date(config_int$startdate, tryFormats = '%m/%d/%y')
-      intdate <- as.Date('2020-04-06')
+      intdate <- as.Date('2020-04-01')
       dayalphas_inter <- as.numeric(intdate) - as.numeric(startdate)
       
       config_int$dayalpha <- c(config$dayalpha, dayalphas_inter)

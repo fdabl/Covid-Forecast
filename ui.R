@@ -52,6 +52,13 @@ body <- dashboardBody(
              <a href='https://www.medrxiv.org/content/10.1101/2020.05.16.20102947v1'>2020b</a>).
              The source code for the model is available on <a href='https://github.com/TNO/Covid-SEIR' target='_blank'>Github</a>.
              </p>
+             
+             <p>
+             Models can be tools that help us make sense of certain aspects of reality, and allow us to answer <i>what if?</i> questions. The quality
+             of the answers depends on a number of factors, many of which themselves are uncertain in the case of COVID-19. Thus, no model should be
+             taken too seriously; the purpose of this app is not to aid decision-makers, but for users to get a feeling for
+             the potential effect of interventions. For a blog post introducing this app, see <a href='blogpost'>here</a>.
+             </p>
              " 
             )
           )
@@ -70,8 +77,8 @@ body <- dashboardBody(
             "
             <p>
             The Figure on the right shows the raw data (black dots) and the model fit for cumulative confirmed cases of COVID-19 (top left),
-            cumulative hospitalized cases (top right), intensive care cases (bottom left), and cumulative mortalities (bottom right). The black and
-            gray solid lines show the posterior mean and posterior median of the model estimate, while the shaded ribbons indicate the 40% and
+            cumulative hospitalized cases (top right), intensive care cases (bottom left), and cumulative mortalities (bottom right). The coloured
+            solid lines show the posterior mean and posterior median of the model estimate, while the shaded ribbons indicate the 40% and
             90% credible intervals, respectively.
             </p>
             
@@ -100,16 +107,17 @@ body <- dashboardBody(
             "
             <p>
             How would the epidemic have unfolded had we acted differently? The Figure on the right shows the same as above, except that
-            we assume that, on the 6th of April, we have reduced social contact by slightly less than we actually have. (For details on how this
+            we assume that, on the 1st of April, we have reduced social contact by slightly less than we actually have. (For details on how this
             is formalized, see the explanation below). The model predicts an increase in the number of infections, hospitalizations,
-            intensive care cases, as well as mortalities. The solid grey line indicates the posterior mean predictions, while the bands
-            indicate the uncertainty associated with them.
+            intensive care cases, as well as mortalities. This is indicated by the solid grey line, which gives the posterior mean predictions for
+            this alternative scenario, while the bands indicate the uncertainty associated with them.
             </p>
             
             <p>
             In addition to asking the model questions about what could have happened, you can also ask it what might happen under different
             interventions. Under <i>Interactive Exploration</i>, you can add your own interventions and see the effect the model predicts they
-            would have.
+            would have. You can also specify a treshold for the intensive care capacity that, if surpassed, automatically leads to a reduction
+            in social contacts. We call this feature the <i>Automatic Hammer</i> in the <i>Interactive Exploration</i>.
             </p>
             "
           )
@@ -184,8 +192,17 @@ body <- dashboardBody(
               withMathJax(),
               
               HTML(
-                'After running the model, this panel allows you to see the effect of past and future interventions.
-                Interventions are formalized as a reduction in social contact taking place from a particular date onwards.'
+                '
+                <p style="font-size: 100%;">
+                After running the model, this panel allows you to see the (probabilistic) effect of past and future interventions.
+                Interventions are formalized as a reduction in social contact taking place from a particular date onwards.
+                </p>
+                
+                <p style="font-size: 100%;">
+                You can also implement an automatic hammer, which reduces the social contact to a particular amount after a certain
+                intensive care unit threshold has been reached.
+                </p>
+                '
               ),
               tags$hr(),
               
@@ -203,22 +220,9 @@ body <- dashboardBody(
               ),
               conditionalPanel(
                 condition = 'input.hammer == 1',
-                splitLayout(
-                  cellWidths = c('33%', '33%', '33%'),
-                  dateInput(
-                    'hammer_date', paste0('Hammer Allowed From'),
-                    min = '2020-03-02', width = '100%'
-                  ),
-                  numericInput(
-                    'hammer_alpha', withMathJax(paste0('% Social Contact')),
-                    value = 0.30, step = 0.01, min = 0, max = 1, width = '100%'
-                  ),
-                  numericInput(
-                    'hammer_ICU', paste0('ICU Threshold'),
-                    value = 500, min = 1, max = 10000, width = '100%'
-                  )
-                )
+                uiOutput('hammer_panel')
               ),
+              # uiOutput('hammer_panel')
               div(style = 'display: inline-block;',  actionButton('intervene', 'Intervene')),
               div(style = 'display: inline-block;',  actionButton('reset', 'Reset Intervention'))
             ),
@@ -293,7 +297,9 @@ body <- dashboardBody(
               'Parameters II',
               
               HTML(
-                'In this expert panel, you can change the more subtle components of the model by changing the priors on key parameters.'
+                'In this expert panel, you can change the more subtle components of the model by changing the priors on key parameters.
+                Note that \\( \\mu \\) and \\( \\sigma \\) give the mean and standard deviation of % social contacts in the past interventions.
+                '
               ),
               
               tags$hr(),
@@ -389,13 +395,7 @@ body <- dashboardBody(
                 value = 4, min = 2, max = 16, width = '100%'
               ),
               
-              numericInput(
-                'nr_interventions',
-                'Number of Past Interventions',
-                min = 1, max = 100,
-                value = 7, width = '100%'
-              ),
-              
+              uiOutput('nr_interventions'),
               checkboxInput(
                 'show_alpha',
                 'Show Prior for Past Interventions',
@@ -435,7 +435,12 @@ body <- dashboardBody(
             This web interface was developed by <a href='https://twitter.com/fdabl' target='_blank'>Fabian Dablander</a>
             in co-operation with <a href='https://nl.linkedin.com/in/lgbrunner' target='_blank'>Logan Brunner</a> and
             <a href='https://www.uu.nl/staff/jdamvanwees' target='_blank'>Jan-Diederik van Wees</a> as a
-            <a href='http://scienceversuscorona.com/' target='_blank'>Science versus Corona</a> project
+            <a href='http://scienceversuscorona.com/' target='_blank'>Science versus Corona</a> project.
+            </p>
+            
+            <p style = 'text-align: center;'>
+            For questions about the model specifically, please contact Logan or Jan-Diederik. For issues regarding the Shiny app, head over to
+            <a href='https://github.com/fdabl/Covid-Forecast'>Github</a>.
             <p>
             "
           )

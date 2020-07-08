@@ -2,20 +2,6 @@ library('jsonlite')
 library('reticulate')
 library('RColorBrewer')
 
-# https://github.com/rstudio/rsconnect/issues/359
-# https://github.com/ranikay/shiny-reticulate-app
-
-# Interventions for The Netherlands: Old
-# ALPHAS <- list(
-#   c(0.1,0.5), c(0.1,0.5), c(0.3,0.9), c(0.3,0.9), c(0.3,0.9),
-#   c(0.3,0.9), c(0.6,0.95), c(0.6,0.95), c(0.7,0.95), c(0.7,0.95),
-#   c(0.6,0.95), c(0.6,0.95), c(0.5,0.95), c(0.5,0.95), c(0.5,0.95), c(0.5,0.95)
-# )
-# 
-# DAYALPHAS <- c(8, 12, 15, 18, 19, 20, 21, 22, 23, 24, 26, 28, 30, 32, 34, 36)
-
-# Need to transform that to Gaussians!!
-# Interventions for The Netherlands: New
 uni2norm <- function(p) {
   c((p[1] + p[2]) / 2, (p[2] - p[1]) / sqrt(12))
 }
@@ -33,14 +19,21 @@ ALPHAS <- list(
 ALPHAS <- lapply(ALPHAS, uni2norm)
 DAYALPHAS <-  c(8, 15, 20, 23, 28, 32, 72)
 
+# Add alphas
+startdate <- as.Date('3/1/20', tryFormats = '%m/%d/%y')
+todate <- Sys.Date()
+total_days <- as.numeric(todate - startdate)
+last_day <- DAYALPHAS[length(DAYALPHAS)]
+additional_days <- round(seq(last_day - 40, total_days - 15, length.out = 3))
+additional_alphas <- lapply(seq(length(additional_days)), function(i) c(0.75, 0.075))
+
+ALPHAS <- c(ALPHAS, additional_alphas)
+DAYALPHAS <- c(DAYALPHAS, additional_days)
 
 LINESIZE <- 0.75
 INTERVENTION_COLOR <- '#ADADAD'
 
-# use_condaenv("r-reticulate")
 use_python('/usr/bin/python3')
-# py_install(c('numpy', 'matplotlib'))
-# use_python('/anaconda3/bin/python3')
 
 # Setup Python Environment
 # system('apt-get install python3-tk')
@@ -95,6 +88,7 @@ plot_predictions <- function(
       name = '',
       values = c('90% CI' = cols[1], '40% CI' = cols[2])
     ) +
+    scale_y_continuous(n.breaks = 5) +
     theme_bw() + 
     theme(
       legend.position = 'top',
@@ -187,12 +181,12 @@ plot_interventions <- function(config, model, cols, ylab, title, show_interventi
     # preddat <- data.frame('Time' = preddat[, 1], 'Mean' = preddat[, 2])
     # preddat$Date <- start + preddat$Time - 1
     dat$Mean <- sanitize(preddat[, 2])
-
+    
     p <- p +
       geom_line(data = dat, aes(x = Date, y = Mean, color = 'Intervention')) +
       geom_ribbon(
         data = dat,
-        aes(ymin = Mean * (1 - (p50 - p5) / p50), ymax = Mean * (1 + (p95 - p50) / p50)),
+        aes(ymin = sanitize(Mean * (1 - (p50 - p5) / p50)), ymax = sanitize(Mean * (1 + (p95 - p50) / p50))),
         alpha = 0.35, fill = INTERVENTION_COLOR, size = LINESIZE
       ) +
       scale_colour_manual(
@@ -277,20 +271,6 @@ create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
     DAYALPHAS <- sapply(dayalphas_prior, function(day) {
       input[[day]] - startdate
     })
-    
-    # add to alphas for uncertainty
-    # todate <- Sys.Date()
-    # total_days <- as.numeric(todate - startdate)
-    # last_day <- DAYALPHAS[length(DAYALPHAS)]
-    # additional_days <- seq(last_day + 10, total_days - 20, 10)
-    # additional_alphas <- lapply(seq(length(additional_days)), function(i) c(0.75, 0.20))
-    # 
-    # ALPHAS <- c(ALPHAS, additional_alphas)
-    # DAYALPHAS <- c(DAYALPHAS, additional_days)
-    
-    # a <- add_alphas(ALPHAS, DAYALPHAS)
-    # ALPHAS <- a[[1]]
-    # DAYALPHAS <- a[[2]]
   }
 
   # If the user has intervened (single_run = TRUE), add the intervention alphas and
@@ -314,15 +294,6 @@ create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
     # ALPHAS <- posterior_alphas
   }
   
-  startdate <- as.Date('3/1/20', tryFormats = '%m/%d/%y')
-  todate <- Sys.Date()
-  total_days <- as.numeric(todate - startdate)
-  last_day <- DAYALPHAS[length(DAYALPHAS)]
-  additional_days <- round(seq(last_day - 40, total_days - 15, length.out = 3))
-  additional_alphas <- lapply(seq(length(additional_days)), function(i) c(0.75, 0.075))
-
-  ALPHAS <- c(ALPHAS, additional_alphas)
-  DAYALPHAS <- c(DAYALPHAS, additional_days)
   
   print(ALPHAS)
   print(DAYALPHAS)
