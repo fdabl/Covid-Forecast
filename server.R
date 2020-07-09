@@ -96,7 +96,7 @@ shinyServer(function(input, output, session) {
       if (hammer) {
         config_int$ACCC_timestart <- hammer_date
         config_int$hammer_ICU <- input$hammer_ICU
-        config_int$hammer_alpha <- norm2uni(1 - input$hammer_alpha) # input is % social contact reduction
+        config_int$hammer_alpha <- norm2uni(input$hammer_alpha / 100) # input is % reduction of R0
         
       } else {
         n <- names(config_int)
@@ -148,8 +148,10 @@ shinyServer(function(input, output, session) {
       startdate <- as.Date('3/1/20', tryFormats = '%m/%d/%y')
       
       output <- tagList()
-      print('In show past interventions')
-      print(ALPHAS)
+      output[[1]] <- HTML(
+        'Note that \\( \\mu \\) and \\( \\sigma \\) here are the mean and standard deviation of
+        the amount or effect of (past) restrictions.<br><br>'
+      )
       
       for (i in seq(nr_inter$data)) {
         day <- paste0('day_', i)
@@ -170,8 +172,8 @@ shinyServer(function(input, output, session) {
           date <- Sys.Date()
         }
         
-        output[[i]] <- tagList()
-        output[[i]] <- splitLayout(
+        output[[i + 1]] <- tagList()
+        output[[i + 1]] <- splitLayout(
             cellWidths = c('33%', '33%', '33%'),
             dateInput(
               day, paste0('Date'),
@@ -196,19 +198,16 @@ shinyServer(function(input, output, session) {
     
     alpha <- input$alpha_intervention_1
     
-    # Somehow this does not work!
-    shinyjs::toggleState('intervene', condition = !is.na(alpha) && alpha > 100)
-    # shinyjs::toggleState('intervene', condition = alpha > 0.50)
-    
-    if (!is.na(alpha) && alpha > 100) {
+    if (!is.na(alpha) && (alpha > 100 || alpha < 0)) {
       
       shinyjs::disable('intervene')
       showNotification(
-        ui = 'The Reduction in R(t) should not exceed 100%',
+        ui = withMathJax(paste0('The Amount of Restrictions must be between 0 and 100!')),
         type = 'error', id = 'alpha_notification', duration = 120
       )
-
     } else {
+      
+      shinyjs::enable('intervene')
       removeNotification('alpha_notification')
     }
     
@@ -230,8 +229,8 @@ shinyServer(function(input, output, session) {
           min = '2020-03-02', width = '100%'
         ),
         numericInput(
-          alpha, withMathJax(paste0('% Reduction in R(t)')),
-          value = 30, step = 1, min = 0, max = 100, width = '100%'
+          alpha, withMathJax(paste0('Amount of Restrictions')),
+          value = 50, step = 1, min = 0, max = 100, width = '100%'
         )
       )
     }
@@ -258,8 +257,8 @@ shinyServer(function(input, output, session) {
         min = min_date, value = min_date, width = '100%'
       ),
       numericInput(
-        'hammer_alpha', withMathJax(paste0('% Reduction in R(t)')),
-        value = 30, step = 1, min = 0, max = 100, width = '100%'
+        'hammer_alpha', withMathJax(paste0('Amount of Restrictions')),
+        value = 80, step = 1, min = 0, max = 100, width = '100%'
       ),
       numericInput(
         'hammer_ICU', paste0('ICU Threshold'),
@@ -369,11 +368,8 @@ shinyServer(function(input, output, session) {
     # Math causes plotly errors
     # ylab <- latex2exp::TeX('Reduction in R(t) (%)$')
     # title <- latex2exp::TeX('% Reduction in R0')
-    ylab <- expression('% Reduction in ' ~ R[0])
-    title <- expression('% Reduction in ' ~ R[0])
-    
-    # ylab <- '1 - alpha'
-    # title <- 'Reduction in Rt across Time'
+    ylab <- expression(alpha[t] ~ ' x 100')
+    title <- 'Amount and Effect of Restrictions'
     
     if (!is.null(model$data)) {
       p <- plot_interventions(config$data, model, cols, ylab, title, has_intervened$boolean)
@@ -456,7 +452,7 @@ shinyServer(function(input, output, session) {
       
       config_int$ACCC_timestart <- dayalphas_inter
       config_int$hammer_ICU <- 500
-      config_int$hammer_alpha <- norm2uni(1 - 0.20) # input is % social contact reduction
+      config_int$hammer_alpha <- norm2uni(1 - 0.10) # input is % social contact reduction
       
       config_int$dayalpha <- c(config$dayalpha, dayalphas_inter)
       config_int$alpha <- alphas
@@ -503,7 +499,7 @@ shinyServer(function(input, output, session) {
     assumes that reinfections do not occur, that is, that immunity lasts for life, or at least until the end of the simulation.
     In addition to the basic SEIR structure, the model also incorporates a realistic flow process for hospitalization and intensive care.
     This allows one to split the removed subpopulation into those that have recovered and those that have deceased.
-    The Figure on the right gives an overview of the model.
+    The figure on the right gives an overview of the model.
     </p>
     
     <p>
@@ -513,13 +509,13 @@ shinyServer(function(input, output, session) {
     </p>
     
     <p>
-    &#945;(t) is a key parameter, which encodes the strength of social distancing: &#945;(t) = 0 when no measures are in place, and
-    &#945;(t) = 1 when social distancing would prevent any transmission. Under <i>Interactive Exploration</i>, you can adjust these parameters, make model predictions, and change &#945;(t) to
+    &#945;(t) is a key parameter, which encodes the effect (or amount) of measures that reduce virus transmission: &#945;(t) = 0 when no measures are in place, and
+    &#945;(t) = 1 when measures would prevent any transmission. Under <i>Interactive Exploration</i>, you can adjust these parameters, make model predictions, and change &#945;(t) to
     assess the effect that interventions could have. An overview of all parameters and sensible default values are given in the Table below.
     </p>
     
     <p>
-    As shown in the Figure, the fraction of patients who go to the hospital, which takes about d<sub>hos</sub> days,
+    As shown in the figure, the fraction of patients who go to the hospital, which takes about d<sub>hos</sub> days,
     is given by h, while the fraction of patients with mild symptoms, which recover in about d<sub>rec</sub> days, is given by 1 - h. 
     </p>
     
@@ -537,7 +533,7 @@ shinyServer(function(input, output, session) {
     
     <p>
     The model is strongly data-driven and calibrates prior estimates for a number of model parameters,
-    including the reproduction number, strength of social distancing, and some of the treatment times for hospitalization and
+    including the reproduction number, strength of measures, and some of the treatment times for hospitalization and
     ICU from the observed data (see Table below). For data assimilation of all parameters in conjunction with calibration of &#945;(t), we use the ensemble
     smoother with multiple iterations which is a computationally efficient method for ensembles of non-linear forward models.
     The data assimilation is performed by matching modeled hospitalization and intensive care unit usage to reported usage.
@@ -557,57 +553,58 @@ shinyServer(function(input, output, session) {
   
   
   output$model_parameters <- renderTable({
+    
     params <- c(
-      '$$N$$', '$$m$$', '$$R_0$$', '$$\\sigma$$', '$$\\gamma$$',
-      '$$d_{\\text{hos}}$$', '$$d_{\\text{hosd}}$$', '$$d_{\\text{hosrec}}$$',
-      '$$d_{\\text{icud}}$$', '$$d_{\\text{icurec}}$$', '$$d_{\\text{rec}}$$',
-      '$$f_{\\text{hos}}$$', '$$f_{\\text{icu}}$$', '$$h$$', '$$i(t)$$',
-      '$$\\text{CFR}_{\\text{hos}} = f_{\\text{hos}} + i(t) f_{\\text{icu}}$$'
+      'N', 'm', 'R<sub>0</sub>', '&sigma;', '&gamma;',
+      'd<sub>hos</sub>', 'd<sub>hod</sub>', 'd<sub>hosrec</sub>',
+      'd<sub>icud</sub>', 'd<sub>icurec</sub>', 'd<sub>rec</sub>',
+      'f<sub>hos</sub>', 'f<sub>icu</sub>', 'h', 'i(t)',
+      'CFR<sub>hos</sub> = f<sub>hos</sub> + i(t) f<sub>icu</sub>'
     )
     
     values_mean <- c(
-      '$$80000$$', '$$0.90$$', '$$3.20$$', '$$0.20$$', '$$0.50$$', '$$7$$',
-      '$$3$$', '$$9$$', '$$11$$', '$$23$$', '$$12$$', '$$-$$', '$$0.30$$',
-      '$$0.015$$', '$$0.18 - 1$$', '$$0.22$$'
+      '80000', '0.90', '3.20', '0.20', '0.50', '7',
+      '3', '9', '11', '23', '12', '-', '0.30',
+      '0.015', '0.18 - 1', '0.22'
     )
     
     values_std <- c(
-      '$$40000$$', '$$-$$', '$$0.50$$', '$$-$$', '$$-$$', '$$-$$',
-      '$$1$$', '$$-$$', '$$-$$', '$$1$$', '$$-$$', '$$-$$', '$$0.02$$',
-      '$$0.005$$', '$$-$$', '$$0.03$$'
+      '40000', '-', '0.50', '-', '-', '-',
+      '1', '-', '-', '1', '-', '-', '0.02',
+      '0.005', '-', '0.03'
     )
     
     G <- c(
-      '$$-$$', '$$-$$', '$$-$$', '$$-$$', '$$-$$', '$$2$$',
-      '$$2$$', '$$4$$', '$$8$$', '$$17$$', '$$-$$', '$$-$$', '$$-$$',
-      '$$-$$', '$$-$$', '$$-$$'
+      '-', '-', '-', '-', '-', '2',
+      '2', '4', '8', '17', '-', '-', '-',
+      '-', '-', '-'
     )
     
     unit <- c(
-      '$$-$$', '$$-$$', '$$\\text{day}^{-1}$$', '$$\\text{day}^{-1}$$', '$$\\text{day}^{-1}$$',
-      '$$\\text{days}$$', '$$\\text{days}$$', '$$\\text{days}$$', '$$\\text{days}$$', '$$\\text{days}$$',
-      '$$\\text{days}$$', '$$-$$', '$$-$$', '$$-$$', '$$-$$', '$$-$$'
+      '-', '-', 'day<sup>-1</sup>', 'day<sup>-1</sup>', 'day<sup>-1</sup>',
+      'days', 'days', 'days', 'days', 'days',
+      'days', '-', '-', '-', '-', '-'
     )
-    
+
     description <- c(
-      '$$\\text{1/N is the starting fraction of exposed in SEIR model}$$',
-      '$$\\text{Fraction of total population susceptible to COVID-19}$$',
-      '$$\\text{Initial reproduction number}$$',
-      '$$\\text{Incubation time of 5 days}$$',
-      '$$\\text{Removal rate of infected people in self quarantine}$$',
+      '1/N is the starting fraction of exposed in SEIR model',
+      'Fraction of total population susceptible to COVID-19',
+      'Initial reproduction number',
+      'Incubation time of 5 days',
+      'Removal rate of infected people in self quarantine',
       
-      '$$\\text{Days of illness before hospitalization}$$',
-      '$$\\text{Days of hospital treatment for mortalities}$$',
-      '$$\\text{Days of hospital treatment for recovery}$$',
-      '$$\\text{Days of ICU treatment for mortalities (estimated from NICE data)}$$',
-      '$$\\text{Days of ICU treatment for recoverable case (estimated from NICE data)}$$',
-      '$$\\text{Days required for recovery of mild cases}$$',
+      'Days of illness before hospitalization',
+      'Days of hospital treatment for mortalities',
+      'Days of hospital treatment for recovery',
+      'Days of ICU treatment for mortalities (estimated from NICE data)',
+      'Days of ICU treatment for recoverable case (estimated from NICE data)',
+      'Days required for recovery of mild cases',
       
-      '$$f_{\\text{hos}} = \\text{CFR}_{\\text{hos}} - i(t) f_{\\text{icu}}$$',
-      '$$\\text{Case Fatality Rate (CFR) of ICU patients (estimated from data)}$$',
-      '$$\\text{Fraction of hospitalized cases (estimated from under registration and Sanquin study)}$$',
-      '$$\\text{Fraction of hospitalized patients in need for IC treatment (fitted on reported rates from hospitalization and ICU with Gaussian smoothing)}$$',
-      '$$\\text{Aggregated CFR of hospitalized and ICU cases (estimated from reported mortality rates by NICE)}$$'
+      'f<sub>hos</sub> = CFR<sub>hos</sub> - i(t) f<sub>icu</sub>',
+      'Case Fatality Rate (CFR) of ICU patients (estimated from data)',
+      'Fraction of hospitalized cases (estimated from under registration and Sanquin study)',
+      'Fraction of hospitalized patients in need for IC treatment (fitted on reported rates from hospitalization and ICU with Gaussian smoothing)',
+      'Aggregated CFR of hospitalized and ICU cases (estimated from reported mortality rates by NICE)'
     )
     
     df <- data.frame(
@@ -620,13 +617,13 @@ shinyServer(function(input, output, session) {
     )
     
     colnames(df) <- c(
-      '$$\\text{Parameter}$$', '$$\\mu$$',
-      '$$\\sigma$$', '$$\\xi$$',
-      '$$\\text{Unit}$$', '$$\\text{Description}$$'
+      'Parameter', '&mu;',
+      '&sigma;', '&xi;',
+      'Unit', 'Description'
     )
     
     df
     
-  }, spacing = 'xs', align = 'cccccl', rownames = FALSE)
+  }, spacing = 'm', align = 'cccccl', rownames = FALSE, sanitize.text.function = function(x) x)
   
 })

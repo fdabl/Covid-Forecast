@@ -20,8 +20,8 @@ ALPHAS <- lapply(ALPHAS, uni2norm)
 DAYALPHAS <-  c(8, 15, 20, 23, 28, 32, 72)
 
 # Add alphas
-startdate <- as.Date('3/1/20', tryFormats = '%m/%d/%y')
 todate <- Sys.Date()
+startdate <- as.Date('3/1/20', tryFormats = '%m/%d/%y')
 total_days <- as.numeric(todate - startdate)
 last_day <- DAYALPHAS[length(DAYALPHAS)]
 additional_days <- round(seq(last_day - 40, total_days - 15, length.out = 3))
@@ -43,15 +43,7 @@ use_python('/usr/bin/python3')
 # print(py_discover_config())
 # virtualenv_install('python_env', packages = c('numpy==1.18.5', 'h5py', 'scipy==1.4.1', 'tqdm', 'requests', 'lxml', 'selenium'))#, 'matplotlib==1.5.3'))
 
-# virtualenv_install('python_env', packages = c('pip==19.0.3', 'numpy', 'matplotlib'))
-# virtualenv_install('python_env', packages = c('numpy', 'matplotlib', 'requests'), ignore_installed = TRUE)
-# virtualenv_install('python_env', packages = c('numpy', 'matplotlib', 'pip==19.0'), ignore_installed = TRUE)
-# use_virtualenv('python_env', required = TRUE)
-
-# source_python('source.py')
 source_python('bin/dashboard_wrapper.py')
-# source_python('Covid-SEIR/bin/corona_esmda.py')
-# source_python('Covid-SEIR/src/api_nl_data.py')
 # 
 # config <- fromJSON('Covid-SEIR/configs/netherlands_dashboard.json')
 # config <- fromJSON('config.json')
@@ -260,6 +252,7 @@ create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
   # The global variables are also what is shown as default input
   if (input$show_alpha) {
     nr_int <- seq(input$nr_interventions)
+    print('SHOW Input')
     
     alpha_mean_prior <- paste0('alpha_mean_', nr_int)
     alpha_sd_prior <- paste0('alpha_sd_', nr_int)
@@ -296,15 +289,8 @@ create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
     # Add intervention alphas
     # ALPHAS <- c(posterior_alphas, ALPHAS_INTER)
     # DAYALPHAS <- c(DAYALPHAS, DAYALPHAS_INTER - as.numeric(startdate))
-    
-    ALPHAS <- posterior_alphas
-    print('----------------')
-    print('Single-run')
-    print(ALPHAS)
-    print('----------------')
     # ALPHAS <- posterior_alphas
   }
-  
   
   print(ALPHAS)
   print(DAYALPHAS)

@@ -30,6 +30,7 @@ body <- dashboardBody(
       tags$style(type="text/css", ".explanation_plot{text-align: center;} p{font-size: 120%;}"),
       tags$style(type="text/css", "p{font-size: 130%;}"),
       tags$style(type="text/css", "#image img {max-width: 100%; width: 100%; height: auto}"),
+      tags$head(tags$style(type = "text/css",  "#model_parameters{ overflow-x: scroll; margin-top: 2em;}")),
       tabName = 'introduction',
       fluidPage(
         withMathJax(),
@@ -37,7 +38,7 @@ body <- dashboardBody(
           box(
             width = NULL,
             tags$h1(
-              'Forecasting COVID-19', align = 'center'
+              'Forecasting COVID-19 in The Netherlands', align = 'center'
             ),
             
             tags$br(),
@@ -107,15 +108,16 @@ body <- dashboardBody(
           HTML(
             "
             <p>
-            How would the epidemic have unfolded had we acted differently? The figure on the right shows the same as above, except that
-            we assume that, on the 1st of June, we have increased the reproductive number more than we actually have. (For details on how this
-            is formalized, see the explanation below). The model predicts an increase in the number of infections, hospitalizations,
-            intensive care cases, as well as mortalities; a second peak. This is indicated by the solid grey line, which gives the posterior mean predictions for
-            this alternative scenario, while the bands indicate the uncertainty associated with them.
+            How would the epidemic have unfolded had we acted differently? The figure on the right shows the same as above, with one
+            difference: we assume that, on the 1<sup>st</sup> of June, we allowed the virus to spread more (e.g. through relaxing social distancing)
+            than it actually has. (For details on how this is formalized, see the explanation of the model below).
+            The model predicts an increase in the number of infections, hospitalizations, intensive care cases, as well as mortalities; a second peak.
+            This is indicated by the solid grey line, which gives the posterior mean predictions for this alternative scenario,
+            while the bands indicate the uncertainty associated with them.
             </p>
             
             <p>
-            In addition to asking the model questions about what could have happened, you can also ask it what might happen under different
+            In addition to asking the model about what could have happened, you can also ask it what might happen under different
             interventions. Under <i>Interactive Exploration</i>, you can add your own interventions and see the effect the model predicts they
             would have. You can also specify a treshold for the intensive care capacity that, if surpassed, automatically leads to a reduction
             in the reproductive number. We call this feature the <i>Automatic Hammer</i> in the <i>Interactive Exploration</i>.
@@ -140,9 +142,9 @@ body <- dashboardBody(
           HTML(
             "
             <p>
-            What if we would reduce the reproductive number (through e.g. stronger social distancing) once a critical threshold of intensive
+            What if we again implement measures that reduce virus transmission (such as stronger social distancing) once a critical threshold of intensive
             care capacity is reached? The figure on the right illustrates this. In particular, it shows the same scenario as above, except that we have
-            added an automatic 'hammer', reducing the reproductive number once the intensive care capacity reaches 500.
+            added an automatic 'hammer', implementing measures that reduce virus transmission once the intensive care capacity reaches 500.
             While this clearly reduces the extent of the second peak, there is a lag so that we would still overshoot the 500
             intensive care cases. Under <i>Interactive Exploration</i>, you can explore different thresholds and strengths of the 'hammer'.
             </p>
@@ -172,7 +174,7 @@ body <- dashboardBody(
             imageOutput('model_explanation')
           )
         ),
-        column(12, align = 'center', tableOutput('model_parameters'))
+        column(12, align = 'left', tableOutput('model_parameters'))
       )
     ),
     
@@ -222,13 +224,14 @@ body <- dashboardBody(
                 '
                 <p style="font-size: 100%;">
                 After running the model, this panel allows you to see the (probabilistic) effect of past and future interventions.
-                Interventions are formalized as a reduction in the reproductive number (through e.g. social distancing) taking
-                place from a particular date onwards.
+                Interventions are formalized as a change in the effect or amount of restrictions (e.g. increased social distancing) taking
+                place from a particular date onwards. They range from 0 (no effect) to 100 (virus transmission stops).
+                The figure in the bottom left visualizes effects across time.
                 </p>
                 
                 <p style="font-size: 100%;">
-                You can also implement an automatic hammer, which reduces the reproductive number to a particular value after a certain
-                intensive care unit threshold has been reached.
+                You can also implement an automatic hammer, which increases the effect / amount of restrictions
+                after a certain intensive care unit threshold has been reached.
                 </p>
                 '
               ),
@@ -326,7 +329,6 @@ body <- dashboardBody(
               
               HTML(
                 'In this expert panel, you can change the more subtle components of the model by changing the priors on key parameters.
-                Note that \\( \\mu \\) and \\( \\sigma \\) give the mean and standard deviation of % reduction in R<sub>0</sub> in the past interventions.
                 '
               ),
               
@@ -344,7 +346,7 @@ body <- dashboardBody(
                   value = 0, min = 0, max = 10, step = 0.01, width = '100%'
                 ),
                 numericInput(
-                  'delayHOS_xi', label = withMathJax('\\( \\sigma \\)'),
+                  'delayHOS_xi', label = withMathJax('\\( \\xi \\)'),
                   value = 2, min = 0, max = 10, step = 0.01, width = '100%'
                 )
               ),
@@ -440,7 +442,7 @@ body <- dashboardBody(
           column(
             width = 8,
             box(
-              title = 'Effect of Interventions', width = NULL, solidHeader = TRUE, status = 'primary',
+              title = 'Amount and Effect of Restrictions', width = NULL, solidHeader = TRUE, status = 'primary',
               withSpinner(plotOutput('interventionPlot', height = 500), color = '#0dc5c1')
             )
           )
