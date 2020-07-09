@@ -22,9 +22,17 @@ shinyServer(function(input, output, session) {
   days_inter_for <- reactiveValues(data = NULL)
   show_prior_interventions <- reactiveValues(data = NULL)
   
-  observeEvent(input$nr_interventions, { nr_inter$data <- input$nr_interventions })
-  observeEvent(input$show_alpha, { show_prior_interventions$data <- input$show_alpha })
-  observeEvent(input$nr_interventions_forecast, { nr_inter_for$data <- input$nr_interventions_forecast })
+  observeEvent(input$nr_interventions, {
+    nr_inter$data <- input$nr_interventions
+  })
+  
+  observeEvent(input$show_alpha, {
+    show_prior_interventions$data <- input$show_alpha
+  })
+  
+  observeEvent(input$nr_interventions_forecast, {
+    nr_inter_for$data <- input$nr_interventions_forecast
+  })
   
   observeEvent(input$reset, {
     reset$data <- TRUE
@@ -117,13 +125,11 @@ shinyServer(function(input, output, session) {
   run_example_hammer <- reactiveValues(data = FALSE)
   
   observeEvent(input$days_intervention, {
-    # TODO: Input handling
     days <- strsplit(input$days_intervention, ',')[[1]]
     days_inter$data <- days
   })
   
   observeEvent(input$days_intervention_forecast, {
-    # TODO: Input handling
     days <- strsplit(input$days_intervention_forecast, ',')[[1]]
     days_inter_for$data <- days
   })
@@ -277,7 +283,7 @@ shinyServer(function(input, output, session) {
       p <- plot_predictions(
         config$data, model, 'infected', cols, ylab,
         title, has_intervened$boolean
-      ) + scale_y_continuous(n.breaks = 5)
+      )
       reset$data <- FALSE
       
       if (clear_figures$data) {
@@ -297,7 +303,7 @@ shinyServer(function(input, output, session) {
       p <- plot_predictions(
         config$data, model, 'hospitalizedcum', cols, ylab,
         title, has_intervened$boolean
-      ) + scale_y_continuous(n.breaks = 5)
+      )
       reset$data <- FALSE
       
       if (clear_figures$data) {
@@ -365,14 +371,14 @@ shinyServer(function(input, output, session) {
   output$interventionPlot <- renderPlot({
     cols <- c('#DDA0DD', '#BA55D3')
     
-    # Math causes plotly errors
-    # ylab <- latex2exp::TeX('Reduction in R(t) (%)$')
-    # title <- latex2exp::TeX('% Reduction in R0')
     ylab <- expression(alpha[t] ~ ' x 100')
-    title <- 'Amount and Effect of Restrictions'
+    title <- 'Amount of Restrictions'
     
     if (!is.null(model$data)) {
-      p <- plot_interventions(config$data, model, cols, ylab, title, has_intervened$boolean)
+      p <- plot_interventions(
+        config$data, model, cols, ylab,
+        title, has_intervened$boolean
+      )
       
       if (clear_figures$data) {
         return(NULL)
@@ -386,7 +392,7 @@ shinyServer(function(input, output, session) {
   output$explanation_plot_predictions <- renderPlot({
     run_model()
     if (!is.null(model$data)) {
-      plot_all(config$data, model, has_intervened$boolean)
+      plot_all(config$data, model, FALSE)
       run_example_intervention$data <- TRUE
     }
   })
@@ -439,7 +445,6 @@ shinyServer(function(input, output, session) {
       config_int <- model_expl$config
       config_int$single_run <- TRUE
       
-      # alphas_inter <- list(list(1 - 0.32, 0.10))
       alphas_inter <- list(list(1 - 0.50, 0.10))
       alphas <- c(model_expl$posterior_alphas, alphas_inter)
       
@@ -447,12 +452,11 @@ shinyServer(function(input, output, session) {
       print(config_int$startdate)
       startdate <- as.Date(config_int$startdate, tryFormats = '%m/%d/%y')
       intdate <- as.Date('2020-06-01')
-      # intdate <- as.Date('2020-04-01')
       dayalphas_inter <- as.numeric(intdate) - as.numeric(startdate)
       
       config_int$ACCC_timestart <- dayalphas_inter
       config_int$hammer_ICU <- 500
-      config_int$hammer_alpha <- norm2uni(1 - 0.10) # input is % social contact reduction
+      config_int$hammer_alpha <- norm2uni(1 - 0.10) # input is % reduction
       
       config_int$dayalpha <- c(config$dayalpha, dayalphas_inter)
       config_int$alpha <- alphas
@@ -489,8 +493,8 @@ shinyServer(function(input, output, session) {
     <p>
     Here, we briefly give an overview of the model. For details, please refer to
     Van Wees et al.
-    (<a href='https://www.who.int/bulletin/online_first/20-256743.pdf' target='_blank'>2020a</a>,
-    <a href='https://www.medrxiv.org/content/10.1101/2020.05.16.20102947v1'>2020b</a>).
+    (<a href='https://research.vumc.nl/en/publications/forecasting-hospitalization-and-icu-rates-of-the-covid-19-outbrea'
+    target='_blank'>2020a</a>, <a href='https://www.medrxiv.org/content/10.1101/2020.05.16.20102947v1'>2020b</a>).
     </p>
     
     <p>
@@ -509,9 +513,10 @@ shinyServer(function(input, output, session) {
     </p>
     
     <p>
-    &#945;(t) is a key parameter, which encodes the effect (or amount) of measures that reduce virus transmission: &#945;(t) = 0 when no measures are in place, and
-    &#945;(t) = 1 when measures would prevent any transmission. Under <i>Interactive Exploration</i>, you can adjust these parameters, make model predictions, and change &#945;(t) to
-    assess the effect that interventions could have. An overview of all parameters and sensible default values are given in the Table below.
+    &#945;(t) is a key parameter, which encodes the amount (or effect) of measures that reduce virus transmission: &#945;(t) = 0 when
+    no measures are in place, and &#945;(t) = 1 when measures would prevent any transmission. Under <i>Interactive Exploration</i>,
+    you can adjust these parameters, make model predictions, and change &#945;(t) to assess the effect that interventions could have.
+    An overview of all parameters and sensible default values are given in the Table below.
     </p>
     
     <p>
@@ -521,22 +526,25 @@ shinyServer(function(input, output, session) {
     
     <p>
     The fraction of hospitalized patients who die immediately without going to the ICU is given by f<sub>hos</sub>, while the
-    fraction who goes to the ICU is given by i(t). Some hospitalized patients recover, and this process of recover takes about d<sub>hosrec</sub> days.
-    It takes about d<sub>icurec</sub> days for patients to recover from intensive care treatment, if they recover at all.
-    A fraction of ICU patients, given by f<sub>icu</sub>, unfortunately die, and this process takes about d<sub>icud</sub> days.
+    fraction who goes to the ICU is given by i(t). Some hospitalized patients recover, and this process of recover takes about
+    d<sub>hosrec</sub> days. It takes about d<sub>icurec</sub> days for patients to recover from intensive care treatment, if
+    they recover at all. A fraction of ICU patients, given by f<sub>icu</sub>, unfortunately die, and this process
+    takes about d<sub>icud</sub> days.
     </p>
     
     <p>
-    Each of the parameters can be marked by a priori constants or distributions, which can be adjusted in the data calibration.
-    The Table below lists the adopted parameter values including the prior and posterior parameters used for the case study of the Netherlands.
+    Each of the parameters can be marked by a priori constants or distributions, which can be adjusted
+    in the data calibration. The Table below lists the adopted parameter values including the prior and
+    posterior parameters used for the case study of the Netherlands.
     </p>
     
     <p>
     The model is strongly data-driven and calibrates prior estimates for a number of model parameters,
     including the reproduction number, strength of measures, and some of the treatment times for hospitalization and
-    ICU from the observed data (see Table below). For data assimilation of all parameters in conjunction with calibration of &#945;(t), we use the ensemble
-    smoother with multiple iterations which is a computationally efficient method for ensembles of non-linear forward models.
-    The data assimilation is performed by matching modeled hospitalization and intensive care unit usage to reported usage.
+    ICU from the observed data (see Table below). For data assimilation of all parameters in conjunction with calibration
+    of &#945;(t), we use the ensemble smoother with multiple iterations which is a computationally efficient method for
+    ensembles of non-linear forward models. The data assimilation is performed by matching modeled hospitalization and
+    intensive care unit usage to reported usage.
     </p>
     
     <br><h3>Model Parameters</h3><br>

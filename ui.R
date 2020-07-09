@@ -51,14 +51,15 @@ body <- dashboardBody(
              are based on an efficient ensemble based SEIR model described in
              Van Wees et al. (<a href='https://www.who.int/bulletin/online_first/20-256743.pdf' target='_blank'>2020a</a>, 
              <a href='https://www.medrxiv.org/content/10.1101/2020.05.16.20102947v1'>2020b</a>).
-             The source code for the model is available on <a href='https://github.com/TNO/Covid-SEIR' target='_blank'>Github</a>.
              </p>
              
              <p>
-             Models can be tools that help us make sense of certain aspects of reality, and allow us to answer <i>what if?</i> questions. The quality
-             of the answers depends on a number of factors, many of which themselves are uncertain in the case of COVID-19. Thus, no model should be
-             taken too seriously; the purpose of this app is not to aid decision-makers, but for users to get a feeling for
-             the potential effect of interventions. For a blog post introducing this app, see <a href='blogpost'>here</a>.
+             Models can be tools that help us make sense of certain aspects of reality, and allow us to answer
+             <i>what if?</i> questions. The quality of the answers depends on a number of factors, many of which
+             themselves are uncertain in the case of COVID-19. Thus, no model should be taken too seriously; the purpose
+             of this app is not to aid decision-makers, but for users to get a feeling for the potential effect of interventions.
+             For a blog post introducing this app, see
+             <a href='https://scienceversuscorona.com/interactive-exploration-of-covid-19' target='_blank'>here</a>.
              </p>
              " 
             )
@@ -77,10 +78,10 @@ body <- dashboardBody(
           HTML(
             "
             <p>
-            The figure on the right shows the raw data (black dots) and the model fit for cumulative confirmed cases of COVID-19 (top left),
-            cumulative hospitalized cases (top right), intensive care cases (bottom left), and cumulative mortalities (bottom right). The coloured
-            solid lines show the posterior median of the model estimate, while the shaded ribbons indicate the 40% and
-            90% credible intervals, respectively.
+            The figure on the right shows the raw data (black dots) and the model fit for cumulative confirmed cases
+            of COVID-19 (top left), cumulative hospitalized cases (top right), intensive care cases (bottom left), anda
+            cumulative mortalities (bottom right). The coloured solid lines show the posterior median of the model estimate,
+            while the shaded ribbons indicate the 40% and 90% credible intervals, respectively.
             </p>
             
             <p>
@@ -109,11 +110,11 @@ body <- dashboardBody(
             "
             <p>
             How would the epidemic have unfolded had we acted differently? The figure on the right shows the same as above, with one
-            difference: we assume that, on the 1<sup>st</sup> of June, we allowed the virus to spread more (e.g. through relaxing social distancing)
-            than it actually has. (For details on how this is formalized, see the explanation of the model below).
-            The model predicts an increase in the number of infections, hospitalizations, intensive care cases, as well as mortalities; a second peak.
-            This is indicated by the solid grey line, which gives the posterior mean predictions for this alternative scenario,
-            while the bands indicate the uncertainty associated with them.
+            difference: we assume that, on the 1<sup>st</sup> of June, we allowed the virus to spread more
+            (e.g. through relaxing social distancing) than it actually has. (For details on how this is formalized,
+            see the explanation of the model below). The model predicts an increase in the number of infections, hospitalizations,
+            intensive care cases, as well as mortalities; a second peak. This is indicated by the solid grey line, which gives
+            the posterior mean predictions for this alternative scenario, while the bands indicate the uncertainty associated with them.
             </p>
             
             <p>
@@ -142,10 +143,11 @@ body <- dashboardBody(
           HTML(
             "
             <p>
-            What if we again implement measures that reduce virus transmission (such as stronger social distancing) once a critical threshold of intensive
-            care capacity is reached? The figure on the right illustrates this. In particular, it shows the same scenario as above, except that we have
-            added an automatic 'hammer', implementing measures that reduce virus transmission once the intensive care capacity reaches 500.
-            While this clearly reduces the extent of the second peak, there is a lag so that we would still overshoot the 500
+            What if we again implement measures that reduce virus transmission (such as stronger social distancing)
+            once a critical threshold of intensive care capacity is reached? The figure on the right illustrates this.
+            In particular, it shows the same scenario as above, except that we have added an automatic 'hammer',
+            implementing measures that reduce virus transmission once the intensive care capacity reaches 500. While this
+            clearly reduces the extent of the second peak, there is a lag so that we would still overshoot the 500
             intensive care cases. Under <i>Interactive Exploration</i>, you can explore different thresholds and strengths of the 'hammer'.
             </p>
             "
@@ -224,13 +226,13 @@ body <- dashboardBody(
                 '
                 <p style="font-size: 100%;">
                 After running the model, this panel allows you to see the (probabilistic) effect of past and future interventions.
-                Interventions are formalized as a change in the effect or amount of restrictions (e.g. increased social distancing) taking
-                place from a particular date onwards. They range from 0 (no effect) to 100 (virus transmission stops).
-                The figure in the bottom left visualizes effects across time.
+                Interventions are formalized as a change in the amount of restrictions (such as social distancing) taking
+                place from a particular date onwards. They range from 0 (no restrictions; virus roams freely) to 100 (total restrictions;
+                virus transmission stopped completely). The figure in the bottom left visualizes effects across time.
                 </p>
                 
                 <p style="font-size: 100%;">
-                You can also implement an automatic hammer, which increases the effect / amount of restrictions
+                You can also implement an automatic hammer, which increases the amount of restrictions
                 after a certain intensive care unit threshold has been reached.
                 </p>
                 '
@@ -262,7 +264,8 @@ body <- dashboardBody(
               'Parameters I',
               
               HTML(
-                'In this expert panel, you can change the more subtle components of the model by changing the priors on key parameters.'
+                'In this expert panel, you can change the more subtle
+                components of the model by changing the priors on key parameters.'
               ),
               
               tags$hr(),
@@ -328,8 +331,8 @@ body <- dashboardBody(
               'Parameters II',
               
               HTML(
-                'In this expert panel, you can change the more subtle components of the model by changing the priors on key parameters.
-                '
+                'In this expert panel, you can change the more subtle
+                components of the model by changing the priors on key parameters.'
               ),
               
               tags$hr(),
@@ -442,7 +445,7 @@ body <- dashboardBody(
           column(
             width = 8,
             box(
-              title = 'Amount and Effect of Restrictions', width = NULL, solidHeader = TRUE, status = 'primary',
+              title = 'Amount of Restrictions', width = NULL, solidHeader = TRUE, status = 'primary',
               withSpinner(plotOutput('interventionPlot', height = 500), color = '#0dc5c1')
             )
           )
@@ -463,14 +466,14 @@ body <- dashboardBody(
             "
             <p style = 'text-align: center;'>
             This web interface was developed by <a href='https://twitter.com/fdabl' target='_blank'>Fabian Dablander</a>
-            in co-operation with <a href='https://nl.linkedin.com/in/lgbrunner' target='_blank'>Logan Brunner</a> and
-            <a href='https://www.uu.nl/staff/jdamvanwees' target='_blank'>Jan-Diederik van Wees</a> as a
+            together with <a href='https://nl.linkedin.com/in/lgbrunner' target='_blank'>Logan Brunner</a> and
+            <a href='https://www.tno.nl/en/professors/jan-diederik-van-wees/' target='_blank'>Jan-Diederik van Wees</a> as a
             <a href='http://scienceversuscorona.com/' target='_blank'>Science versus Corona</a> project.
             </p>
             
             <p style = 'text-align: center;'>
-            For questions about the model specifically, please contact Logan or Jan-Diederik. For issues regarding the Shiny app, head over to
-            <a href='https://github.com/fdabl/Covid-Forecast'>Github</a>.
+            For questions about the model specifically, please contact Logan or Jan-Diederik.
+            For issues regarding the Shiny app, head over to <a href='https://github.com/fdabl/Covid-Forecast'>Github</a>.
             <p>
             "
           )
@@ -482,7 +485,7 @@ body <- dashboardBody(
 
 
 dashboardPage(
-  dashboardHeader(title = 'Forecasting COVID-19', titleWidth = 350),
+  dashboardHeader(title = 'Exploring COVID-19', titleWidth = 350),
   sidebar,
   body
 )

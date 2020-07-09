@@ -16,6 +16,7 @@ ALPHAS <- list(
   c(0.1,0.6), c(0.3,0.90), c(0.6,0.95),
   c(0.6,0.95), c(0.6,0.95), c(0.6,0.95), c(0.5,0.70)
 )
+
 ALPHAS <- lapply(ALPHAS, uni2norm)
 DAYALPHAS <-  c(8, 15, 20, 23, 28, 32, 72)
 
@@ -41,10 +42,13 @@ use_python('/usr/bin/python3')
 # virtualenv_create(envname = 'python_env', python = 'python3')
 # virtualenv_remove(envname = "python_env", packages = "pip")
 # print(py_discover_config())
-# virtualenv_install('python_env', packages = c('numpy==1.18.5', 'h5py', 'scipy==1.4.1', 'tqdm', 'requests', 'lxml', 'selenium'))#, 'matplotlib==1.5.3'))
+# virtualenv_install(
+#   'python_env',
+#   packages = c('numpy==1.18.5', 'h5py', 'scipy==1.4.1', 'tqdm', 'requests', 'lxml', 'selenium')
+# )
 
 source_python('bin/dashboard_wrapper.py')
-# 
+
 # config <- fromJSON('Covid-SEIR/configs/netherlands_dashboard.json')
 # config <- fromJSON('config.json')
 # config$single_run <- TRUE
@@ -80,7 +84,6 @@ plot_predictions <- function(
       name = '',
       values = c('90% CI' = cols[1], '40% CI' = cols[2])
     ) +
-    scale_y_continuous(n.breaks = 5) +
     theme_bw() + 
     theme(
       legend.position = 'top',
@@ -92,7 +95,7 @@ plot_predictions <- function(
   
   if (show_intervention) {
     
-    # Hack to make the plotting of the intervention line work for infected
+    # Make the plotting of the intervention line work for infected
     if (type == 'infected') {
       type <- 'infected_cum'
     }
@@ -117,8 +120,11 @@ plot_predictions <- function(
   p + guides(
       color = guide_legend(order = 1),
       fill = guide_legend(order = 2)
+    ) +
+    scale_x_date(
+      limits = c(startdate, startdate + 9 * 30),
+      breaks = scales::pretty_breaks(n = 10)
     )
-    #+ scale_x_date(limits = c(startdate, startdate + 4 * 30), breaks = scales::pretty_breaks(n = 8))
 }
 
 
@@ -133,7 +139,6 @@ plot_interventions <- function(config, model, cols, ylab, title, show_interventi
     y
   }
   
-  # dat <- cbind(alpha[, 1], 1 - alpha[, -1])
   dat <- cbind(alpha[, 1], alpha[, -1])
   colnames(dat) <- c('Time', 'p5', 'p30', 'p50', 'p70', 'p95')
   dat <- data.frame(dat)
@@ -194,7 +199,14 @@ plot_interventions <- function(config, model, cols, ylab, title, show_interventi
   p + guides(
     colour = guide_legend(order = 1),
     fill = guide_legend(order = 2)
-  )
+    ) +
+    scale_y_continuous(
+      breaks = seq(0, 100, 20)
+    ) +
+    scale_x_date(
+      limits = c(startdate, startdate + 9 * 30),
+      breaks = scales::pretty_breaks(n = 10)
+    )
 }
 
 
@@ -202,22 +214,22 @@ plot_all <- function(data, model, has_intervened) {
   p1 <- plot_predictions(
     data, model, 'infected', c('#FFE4E1', '#F08080'),
     'Confirmed Cases', 'Cumulative Confirmed Cases', has_intervened
-  ) + scale_y_continuous(n.breaks = 5)
+  )
   
   p2 <- plot_predictions(
     data, model, 'hospitalizedcum', c('#B0E0E6', '#4682B4'),
     'Hospitalized Cases', 'Cumulative Hospitalized Cases', has_intervened
-  ) + scale_y_continuous(n.breaks = 5)
+  )
   
   p3 <- plot_predictions(
     data, model, 'ICU', c('#FFDAB9', '#F4A460'),
     'Intensive Care Cases', 'Intensive Care Cases', has_intervened
-  ) + scale_y_continuous(n.breaks = 5)
+  )
   
   p4 <- plot_predictions(
     data, model, 'dead', c('#C0C0C0', '#808080'),
     'Mortalities', 'Cumulative Mortalities', has_intervened
-  ) + scale_y_continuous(n.breaks = 5)
+  )
   
   gridExtra::grid.arrange(p1, p2, p3, p4, nrow = 2, ncol = 2)
 }
@@ -252,7 +264,6 @@ create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
   # The global variables are also what is shown as default input
   if (input$show_alpha) {
     nr_int <- seq(input$nr_interventions)
-    print('SHOW Input')
     
     alpha_mean_prior <- paste0('alpha_mean_', nr_int)
     alpha_sd_prior <- paste0('alpha_sd_', nr_int)
@@ -297,7 +308,7 @@ create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
   
   json <- list(
     'worldfile' = FALSE,
-    'country' = 'res/corona_dataNL_main.txt', # TODO: Do not hardcode
+    'country' = 'res/corona_dataNL_main.txt',
     'dt' = 0.1,
     't_max' = 360,
     'startdate' = '3/1/20',
@@ -320,7 +331,7 @@ create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
       'stddev' = input$R0_sd
     ),
     
-    'm' = 0.9, # TODO: What is this?
+    'm' = 0.9,
     
     'delayHOS' = list(
       'type' = 'normal',
