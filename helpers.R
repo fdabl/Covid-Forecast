@@ -30,7 +30,7 @@ additional_alphas <- lapply(seq(length(additional_days)), function(i) c(0.75, 0.
 ALPHAS <- c(ALPHAS, additional_alphas)
 DAYALPHAS <- c(DAYALPHAS, additional_days)
 
-LINESIZE <- 0.75
+LINESIZE <- 0.95
 INTERVENTION_COLOR <- '#ADADAD'
 
 use_python('/usr/bin/python3')
@@ -141,7 +141,8 @@ plot_interventions <- function(config, model, cols, ylab, title, show_interventi
     y
   }
   
-  dat <- cbind(alpha[, 1], 1 - alpha[, -1])
+  # dat <- cbind(alpha[, 1], 1 - alpha[, -1])
+  dat <- cbind(alpha[, 1], alpha[, -1])
   colnames(dat) <- c('Time', 'p5', 'p30', 'p50', 'p70', 'p95')
   dat <- data.frame(dat)
   dat$p5 <- sanitize(dat$p5)
@@ -152,10 +153,10 @@ plot_interventions <- function(config, model, cols, ylab, title, show_interventi
   start <- as.Date(config[['startdate']], tryFormats = '%m/%d/%y')
   dat$Date <- start + dat$Time - 1
   
-  p <- ggplot(dat, aes(x = Date, y = p50)) +
-    geom_ribbon(aes(ymin = p5, ymax = p95, fill = '90% CI'), alpha = 0.50) +
-    geom_ribbon(aes(ymin = p30, ymax = p70, fill = '40% CI'), alpha = 0.75) +
-    geom_line(aes(y = p50, color = 'Median'), size = LINESIZE) +
+  p <- ggplot(dat, aes(x = Date, y = p50 * 100)) +
+    geom_ribbon(aes(ymin = p5 * 100, ymax = p95 * 100, fill = '90% CI'), alpha = 0.50) +
+    geom_ribbon(aes(ymin = p30 * 100, ymax = p70 * 100, fill = '40% CI'), alpha = 0.75) +
+    geom_line(aes(y = p50 * 100, color = 'Median'), size = LINESIZE) +
     ggtitle(title) +
     ylab(ylab) +
     scale_colour_manual(
@@ -180,13 +181,15 @@ plot_interventions <- function(config, model, cols, ylab, title, show_interventi
     preddat <- model$single_data[['alpha']]
     # preddat <- data.frame('Time' = preddat[, 1], 'Mean' = preddat[, 2])
     # preddat$Date <- start + preddat$Time - 1
-    dat$Mean <- sanitize(preddat[, 2])
+    dat$Mean <- sanitize(1 - preddat[, 2])
     
     p <- p +
-      geom_line(data = dat, aes(x = Date, y = Mean, color = 'Intervention')) +
+      geom_line(data = dat, aes(x = Date, y = Mean * 100, color = 'Intervention')) +
       geom_ribbon(
         data = dat,
-        aes(ymin = sanitize(Mean * (1 - (p50 - p5) / p50)), ymax = sanitize(Mean * (1 + (p95 - p50) / p50))),
+        aes(ymin = sanitize(Mean * (1 - (p50 - p5) / p50)) * 100,
+            ymax = sanitize(Mean * (1 + (p95 - p50) / p50)) * 100
+            ),
         alpha = 0.35, fill = INTERVENTION_COLOR, size = LINESIZE
       ) +
       scale_colour_manual(
@@ -263,7 +266,8 @@ create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
     dayalphas_prior <- paste0('day_', nr_int)
 
     ALPHAS <- lapply(seq(nr_int), function(i) {
-      c(input[[alpha_mean_prior[i]]], input[[alpha_sd_prior[i]]])
+      # Since input is in %, not in proportions
+      c(input[[alpha_mean_prior[i]]], input[[alpha_sd_prior[i]]]) / 100
     })
     
     startdate <- as.Date('3/1/20', tryFormats = '%m/%d/%y')
@@ -281,7 +285,10 @@ create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
     alphas_inter <- paste0('alpha_intervention_', nr_int)
     dayalphas_inter <- paste0('day_intervention_', nr_int)
 
-    ALPHAS_INTER <- lapply(alphas_inter, function(alpha) c(1 - input[[alpha]], 0.10))
+    ALPHAS_INTER <- lapply(alphas_inter, function(alpha) {
+      c(1 - input[[alpha]], 0.10)
+    })
+    
     DAYALPHAS_INTER <- sapply(dayalphas_inter, function(day) input[[day]])
 
     startdate <- as.Date('3/1/20', tryFormats = '%m/%d/%y')
@@ -291,6 +298,10 @@ create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
     # DAYALPHAS <- c(DAYALPHAS, DAYALPHAS_INTER - as.numeric(startdate))
     
     ALPHAS <- posterior_alphas
+    print('----------------')
+    print('Single-run')
+    print(ALPHAS)
+    print('----------------')
     # ALPHAS <- posterior_alphas
   }
   

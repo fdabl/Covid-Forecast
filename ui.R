@@ -76,15 +76,16 @@ body <- dashboardBody(
           HTML(
             "
             <p>
-            The Figure on the right shows the raw data (black dots) and the model fit for cumulative confirmed cases of COVID-19 (top left),
+            The figure on the right shows the raw data (black dots) and the model fit for cumulative confirmed cases of COVID-19 (top left),
             cumulative hospitalized cases (top right), intensive care cases (bottom left), and cumulative mortalities (bottom right). The coloured
-            solid lines show the posterior mean and posterior median of the model estimate, while the shaded ribbons indicate the 40% and
+            solid lines show the posterior median of the model estimate, while the shaded ribbons indicate the 40% and
             90% credible intervals, respectively.
             </p>
             
             <p>
-            The model gives an excellent fit to all data except the cumulative confirmed cases. This is as expected: since we are not testing
-            all citizens, the reported cases are a considerable underestimate of the true number of infections.
+            The model gives a good fit to all data except the cumulative confirmed cases. This is as expected: since we are not testing
+            all citizens, the reported cases are a considerable underestimate of the true number of infections. The model also seems to slightly
+            understimate the mortalities in the early stages of the epidemic.
             </p>
             "
           )
@@ -106,10 +107,10 @@ body <- dashboardBody(
           HTML(
             "
             <p>
-            How would the epidemic have unfolded had we acted differently? The Figure on the right shows the same as above, except that
-            we assume that, on the 1st of April, we have reduced social contact by slightly less than we actually have. (For details on how this
+            How would the epidemic have unfolded had we acted differently? The figure on the right shows the same as above, except that
+            we assume that, on the 1st of June, we have increased the reproductive number more than we actually have. (For details on how this
             is formalized, see the explanation below). The model predicts an increase in the number of infections, hospitalizations,
-            intensive care cases, as well as mortalities. This is indicated by the solid grey line, which gives the posterior mean predictions for
+            intensive care cases, as well as mortalities; a second peak. This is indicated by the solid grey line, which gives the posterior mean predictions for
             this alternative scenario, while the bands indicate the uncertainty associated with them.
             </p>
             
@@ -117,7 +118,7 @@ body <- dashboardBody(
             In addition to asking the model questions about what could have happened, you can also ask it what might happen under different
             interventions. Under <i>Interactive Exploration</i>, you can add your own interventions and see the effect the model predicts they
             would have. You can also specify a treshold for the intensive care capacity that, if surpassed, automatically leads to a reduction
-            in social contacts. We call this feature the <i>Automatic Hammer</i> in the <i>Interactive Exploration</i>.
+            in the reproductive number. We call this feature the <i>Automatic Hammer</i> in the <i>Interactive Exploration</i>.
             </p>
             "
           )
@@ -133,13 +134,39 @@ body <- dashboardBody(
         status = 'primary',
         solidHeader = TRUE,
         collapsible = TRUE,
-        title = 'Model Explanation',
+        title = 'Model Automatic Hammer',
         column(
           width = 5,
-          htmlOutput('model_overview')
+          HTML(
+            "
+            <p>
+            What if we would reduce the reproductive number (through e.g. stronger social distancing) once a critical threshold of intensive
+            care capacity is reached? The figure on the right illustrates this. In particular, it shows the same scenario as above, except that we have
+            added an automatic 'hammer', reducing the reproductive number once the intensive care capacity reaches 500.
+            While this clearly reduces the extent of the second peak, there is a lag so that we would still overshoot the 500
+            intensive care cases. Under <i>Interactive Exploration</i>, you can explore different thresholds and strengths of the 'hammer'.
+            </p>
+            "
+          )
         ),
         column(
           width = 7,
+          withSpinner(plotOutput('explanation_plot_hammer', width = IMGWIDTH, height = IMGHEIGHT), color = '#0dc5c1')
+        )
+      ),
+      
+      box(
+        width = NULL,
+        status = 'primary',
+        solidHeader = TRUE,
+        collapsible = TRUE,
+        title = 'Model Explanation',
+        column(
+          width = 6,
+          htmlOutput('model_overview')
+        ),
+        column(
+          width = 6,
           div(
             style = 'margin-top: 3%; margin-left: 3%',
             imageOutput('model_explanation')
@@ -195,11 +222,12 @@ body <- dashboardBody(
                 '
                 <p style="font-size: 100%;">
                 After running the model, this panel allows you to see the (probabilistic) effect of past and future interventions.
-                Interventions are formalized as a reduction in social contact taking place from a particular date onwards.
+                Interventions are formalized as a reduction in the reproductive number (through e.g. social distancing) taking
+                place from a particular date onwards.
                 </p>
                 
                 <p style="font-size: 100%;">
-                You can also implement an automatic hammer, which reduces the social contact to a particular amount after a certain
+                You can also implement an automatic hammer, which reduces the reproductive number to a particular value after a certain
                 intensive care unit threshold has been reached.
                 </p>
                 '
@@ -298,7 +326,7 @@ body <- dashboardBody(
               
               HTML(
                 'In this expert panel, you can change the more subtle components of the model by changing the priors on key parameters.
-                Note that \\( \\mu \\) and \\( \\sigma \\) give the mean and standard deviation of % social contacts in the past interventions.
+                Note that \\( \\mu \\) and \\( \\sigma \\) give the mean and standard deviation of % reduction in R<sub>0</sub> in the past interventions.
                 '
               ),
               

@@ -6,7 +6,9 @@ source('helpers.R')
 
 
 shinyServer(function(input, output, session) {
+  withMathJax()
   model <- reactiveValues(data = NULL)
+  model_expl <- reactiveValues(data = NULL)
   config <- reactiveValues(data = NULL)
   config_obj <- reactiveValues(data = NULL)
   has_intervened <- reactiveValues(data = NULL)
@@ -41,6 +43,11 @@ shinyServer(function(input, output, session) {
     model$posterior_alphas <- res[[2]][['alpha']]
     model$config <- res[[2]]
     
+    # Required for the plot explaining the hammer
+    model_expl$data <- res[[1]]
+    model_expl$posterior_alphas <- res[[2]][['alpha']]
+    model_expl$config <- res[[2]]
+    
     clear_figures$data <- FALSE
   }
   
@@ -71,7 +78,8 @@ shinyServer(function(input, output, session) {
       config_int$single_run <- TRUE
       
       alphas_inter <- paste0('alpha_intervention_', seq(input$nr_interventions_forecast))
-      alphas_inter <- lapply(alphas_inter, function(alpha) list(1 - input[[alpha]], 0.10))
+      # Since the user gives % reduction
+      alphas_inter <- lapply(alphas_inter, function(alpha) list(input[[alpha]] / 100, 0.10))
       alphas <- c(model$posterior_alphas, alphas_inter)
       
       startdate <- as.Date(config_int$startdate, tryFormats = '%m/%d/%y')
@@ -106,6 +114,7 @@ shinyServer(function(input, output, session) {
   
   
   run_example_intervention <- reactiveValues(data = FALSE)
+  run_example_hammer <- reactiveValues(data = FALSE)
   
   observeEvent(input$days_intervention, {
     # TODO: Input handling
@@ -170,17 +179,39 @@ shinyServer(function(input, output, session) {
             ),
             numericInput(
               alpha_mean, withMathJax('\\( \\mu \\)'),
-              value = round(mu, 2), step = 0.01, min = 0, max = 1, width = '100%'
+              value = round(mu, 2) * 100, step = 1, min = 0, max = 100, width = '100%'
             ),
             numericInput(
               alpha_sd, withMathJax('\\( \\sigma \\)'),
-              value = round(sigma, 2), step = 0.01, min = 0, max = 1, width = '100%'
+              value = round(sigma, 2) * 100, step = 1, min = 0, max = 100, width = '100%'
             )
           )
       }
       
       return(output)
     }
+  })
+  
+  observeEvent(input$alpha_intervention_1, {
+    
+    alpha <- input$alpha_intervention_1
+    
+    # Somehow this does not work!
+    shinyjs::toggleState('intervene', condition = !is.na(alpha) && alpha > 100)
+    # shinyjs::toggleState('intervene', condition = alpha > 0.50)
+    
+    if (!is.na(alpha) && alpha > 100) {
+      
+      shinyjs::disable('intervene')
+      showNotification(
+        ui = 'The Reduction in R(t) should not exceed 100%',
+        type = 'error', id = 'alpha_notification', duration = 120
+      )
+
+    } else {
+      removeNotification('alpha_notification')
+    }
+    
   })
   
   
@@ -199,8 +230,8 @@ shinyServer(function(input, output, session) {
           min = '2020-03-02', width = '100%'
         ),
         numericInput(
-          alpha, withMathJax(paste0('% Social Contact')),
-          value = 0.30, step = 0.01, min = 0, max = 1, width = '100%'
+          alpha, withMathJax(paste0('% Reduction in R(t)')),
+          value = 30, step = 1, min = 0, max = 100, width = '100%'
         )
       )
     }
@@ -227,8 +258,8 @@ shinyServer(function(input, output, session) {
         min = min_date, value = min_date, width = '100%'
       ),
       numericInput(
-        'hammer_alpha', withMathJax(paste0('% Social Contact')),
-        value = 0.30, step = 0.01, min = 0, max = 1, width = '100%'
+        'hammer_alpha', withMathJax(paste0('% Reduction in R(t)')),
+        value = 30, step = 1, min = 0, max = 100, width = '100%'
       ),
       numericInput(
         'hammer_ICU', paste0('ICU Threshold'),
@@ -336,8 +367,10 @@ shinyServer(function(input, output, session) {
     cols <- c('#DDA0DD', '#BA55D3')
     
     # Math causes plotly errors
-    ylab <- latex2exp::TeX('Social Contacts (%)$')
-    title <- latex2exp::TeX('Reduction in Social Contacts')
+    # ylab <- latex2exp::TeX('Reduction in R(t) (%)$')
+    # title <- latex2exp::TeX('% Reduction in R0')
+    ylab <- expression('% Reduction in ' ~ R[0])
+    title <- expression('% Reduction in ' ~ R[0])
     
     # ylab <- '1 - alpha'
     # title <- 'Reduction in Rt across Time'
@@ -371,23 +404,69 @@ shinyServer(function(input, output, session) {
       config_int <- model$config
       config_int$single_run <- TRUE
       
-      alphas_inter <- list(list(1 - 0.32, 0.10))
+      # alphas_inter <- list(list(1 - 0.32, 0.10))
+      alphas_inter <- list(list(1 - 0.50, 0.10))
       alphas <- c(model$posterior_alphas, alphas_inter)
       
       # Make an intervention today
       startdate <- as.Date(config_int$startdate, tryFormats = '%m/%d/%y')
-      intdate <- as.Date('2020-04-01')
+      intdate <- as.Date('2020-06-01')
+      # intdate <- as.Date('2020-04-01')
       dayalphas_inter <- as.numeric(intdate) - as.numeric(startdate)
       
       config_int$dayalpha <- c(config$dayalpha, dayalphas_inter)
       config_int$alpha <- alphas
+      
+      # Don't run the hammer here
+      n <- names(config_int)
+      to_remove <- n[grepl('ACCC|hammer', n)]
+      config_int[to_remove] <- NULL
+      
       model$config_int <- config_int
       
       res <- run_dashboard_wrapper(toJSON(config_int, auto_unbox = TRUE))
       has_intervened$boolean <- FALSE
       model$single_data <- res[[1]]
-        
+      
       plot_all(config_int, model, TRUE)
+      
+      # Start running the hammer explanation plot
+      run_example_hammer$data <- TRUE
+    }
+  })
+  
+  output$explanation_plot_hammer <- renderPlot({
+    if (!is.null(model$data) && run_example_hammer$data) {
+      
+      # Estimate a single run of the model
+      config <- model_expl$config
+      config_int <- model_expl$config
+      config_int$single_run <- TRUE
+      
+      # alphas_inter <- list(list(1 - 0.32, 0.10))
+      alphas_inter <- list(list(1 - 0.50, 0.10))
+      alphas <- c(model_expl$posterior_alphas, alphas_inter)
+      
+      # Make an intervention today
+      print(config_int$startdate)
+      startdate <- as.Date(config_int$startdate, tryFormats = '%m/%d/%y')
+      intdate <- as.Date('2020-06-01')
+      # intdate <- as.Date('2020-04-01')
+      dayalphas_inter <- as.numeric(intdate) - as.numeric(startdate)
+      
+      config_int$ACCC_timestart <- dayalphas_inter
+      config_int$hammer_ICU <- 500
+      config_int$hammer_alpha <- norm2uni(1 - 0.20) # input is % social contact reduction
+      
+      config_int$dayalpha <- c(config$dayalpha, dayalphas_inter)
+      config_int$alpha <- alphas
+      model_expl$config_int <- config_int
+      
+      res <- run_dashboard_wrapper(toJSON(config_int, auto_unbox = TRUE))
+      has_intervened$boolean <- FALSE
+      model_expl$single_data <- res[[1]]
+      
+      plot_all(config_int, model_expl, TRUE)
     }
   })
   
