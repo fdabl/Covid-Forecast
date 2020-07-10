@@ -117,14 +117,32 @@ plot_predictions <- function(
       )
   }
   
-  p + guides(
+  upper_xlim <- startdate + 9 * 30
+  upper_ylim <- with(dat, {
+    xlim <- as.numeric(upper_xlim) - as.numeric(startdate)
+    max(
+      c(
+        max(p95[seq(xlim)], na.rm = TRUE),
+        max((Mean * (1 + (p95 - p50) / p50))[seq(xlim)], na.rm = TRUE)
+        )
+      )
+  })
+  
+  p <- p + guides(
       color = guide_legend(order = 1),
       fill = guide_legend(order = 2)
     ) +
+    scale_y_continuous(
+      limits = c(0, upper_ylim),
+      breaks = scales::pretty_breaks(n = 5)
+    ) +
     scale_x_date(
-      limits = c(startdate, startdate + 9 * 30),
+      limits = c(startdate, upper_xlim),
       breaks = scales::pretty_breaks(n = 10)
     )
+  
+  # saveRDS(p, 'ggsaved.RDS')
+  p
 }
 
 

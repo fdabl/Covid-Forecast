@@ -38,7 +38,7 @@ body <- dashboardBody(
           box(
             width = NULL,
             tags$h1(
-              'Forecasting COVID-19 in The Netherlands', align = 'center'
+              'COVID-19 in The Netherlands: Exploring Forecasts and Interventions', align = 'center'
             ),
             
             tags$br(),
@@ -49,8 +49,8 @@ body <- dashboardBody(
              hospitalizations, patients in intensive care units, and mortalities. The data is from the Netherlands and is updated daily from
              <a href='https://www.stichting-nice.nl/' target='_blank'>NICE</a>. The forecasts calibrated to the data
              are based on an efficient ensemble based SEIR model described in
-             Van Wees et al. (<a href='https://www.who.int/bulletin/online_first/20-256743.pdf' target='_blank'>2020a</a>, 
-             <a href='https://www.medrxiv.org/content/10.1101/2020.05.16.20102947v1'>2020b</a>).
+             Van Wees et al. (<a href='https://research.vumc.nl/en/publications/forecasting-hospitalization-and-icu-rates-of-the-covid-19-outbrea' target='_blank'>
+             2020a</a>, <a href='https://www.medrxiv.org/content/10.1101/2020.05.16.20102947v1' target='_blank'>2020b</a>).
              </p>
              
              <p>
@@ -228,7 +228,7 @@ body <- dashboardBody(
                 After running the model, this panel allows you to see the (probabilistic) effect of past and future interventions.
                 Interventions are formalized as a change in the amount of restrictions (such as social distancing) taking
                 place from a particular date onwards. They range from 0 (no restrictions; virus roams freely) to 100 (total restrictions;
-                virus transmission stopped completely). The figure in the bottom left visualizes effects across time.
+                virus transmission completely stopped). The figure in the bottom left visualizes effects across time.
                 </p>
                 
                 <p style="font-size: 100%;">
