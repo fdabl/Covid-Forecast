@@ -25,8 +25,10 @@ todate <- Sys.Date()
 startdate <- as.Date('3/1/20', tryFormats = '%m/%d/%y')
 total_days <- as.numeric(todate - startdate)
 last_day <- DAYALPHAS[length(DAYALPHAS)]
-additional_days <- round(seq(last_day - 40, total_days - 15, length.out = 3))
+additional_days <- round(seq(last_day + 60, total_days - 15, length.out = 8))
 additional_alphas <- lapply(seq(length(additional_days)), function(i) c(0.75, 0.075))
+
+# The third to last date is doubled
 
 ALPHAS <- c(ALPHAS, additional_alphas)
 DAYALPHAS <- c(DAYALPHAS, additional_days)
@@ -39,6 +41,7 @@ use_python('/usr/bin/python3')
 # Setup Python Environment
 # system('apt-get install python3-tk')
 
+# # For Shinyapps.io
 # virtualenv_create(envname = 'python_env', python = 'python3')
 # virtualenv_remove(envname = "python_env", packages = "pip")
 # print(py_discover_config())
@@ -117,7 +120,7 @@ plot_predictions <- function(
       )
   }
   
-  upper_xlim <- startdate + 9 * 30
+  upper_xlim <- startdate + 8 * 30
   upper_ylim <- with(dat, {
     xlim <- as.numeric(upper_xlim) - as.numeric(startdate)
     max(
@@ -426,7 +429,7 @@ create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
     'ICufrac' = 0.30, # does not matter (because estimated from the data, see icufracfile)
     
     'calibration_mode' = c('hospitalizedcum', 'ICU', 'dead'),
-    'observation_error' = c(3000.0, 500.0, 3000.0),
+    'observation_error' = c(100.0, 20.0, 30000.0),
     'hist_time_steps' = c(30, 35, 40, 60),
     'p_values' =  c(0.05, 0.3, 0.5, 0.7, 0.95),
     
@@ -441,7 +444,7 @@ create_config <- function(input, posterior_alphas = NULL, single_run = FALSE) {
     ),
 
     'icufracfile' =  'output/netherlands_dashboard_icufrac.txt',
-    'icufracfile' =  '../bin/output/netherlands_dashboard_icufrac.txt',
+    # 'icufracfile' =  '../bin/output/netherlands_dashboard_icufrac.txt',
     'icdatafile' = 'res/icdata_main.txt',
     'single_run' = single_run,
     'output_base_filename' = 'netherlands_dashboard',
